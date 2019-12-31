@@ -1,0 +1,2 @@
+Figure out how to make tests utilizing tor process run with CI(is this possible?)
+At least create a docker container so testing with tor is reasonably predictable

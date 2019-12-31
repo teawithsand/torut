@@ -3,6 +3,6 @@ name = "torut"
 version = "0.1.0"
 authors = ["teawithsand <teawithsand@gmail.com>"]
 edition = "2018"
-
+repository = "github.com/teawithsand/torut"
 
 [dependencies]
