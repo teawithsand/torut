@@ -69,7 +69,6 @@ impl<S> Conn<S>
     /// # Possible performance issues
     /// It uses byte-by-byte reading. Thanks to this feature there is no state in `Conn` struct.
     /// Use some sort of buffered reader in order to minimize overhead.
-    // TODO(teawithsand): fuzz it
     pub async fn receive_data(&mut self) -> Result<(u16, Vec<String>), ConnError> {
         // ok. let's first think about the format.
         // it's rather simple
@@ -150,7 +149,6 @@ impl<S> Conn<S>
             } else if state == 2 || state == 3 {
                 // as the docs says:
                 // Tor, however, MUST NOT generate LF instead of CRLF.
-                // TODO(teawithsand): Note: I guess quoted string is always single line. Check if this is true .
                 current_line_buffer.push(b);
                 if current_line_buffer.len() >= 2 &&
                     current_line_buffer[current_line_buffer.len() - 2] == b'\r' &&
