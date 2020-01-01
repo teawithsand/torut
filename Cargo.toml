@@ -12,6 +12,9 @@ control = ["tokio", "rand", "base64"]
 v2 = ["openssl", "base32", "base64"]
 v3 = ["rand", "ed25519-dalek", "base32", "base64"]
 
+[badges]
+travis-ci = { repository = "teawithsand/torut", branch = "master" }
+
 [dependencies]
 serde = { version = "1.0", optional = true }
 serde_derive = { version = "1.0", optional = true }
