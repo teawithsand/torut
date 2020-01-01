@@ -3,6 +3,9 @@ name = "torut"
 version = "0.1.0"
 authors = ["teawithsand <teawithsand@gmail.com>"]
 edition = "2018"
+license = "MIT"
+license-file = "LICENSE.MD"
+description = "torut is reasonable tor controller written in rust utilizing tokio for async communication"
 repository = "https://github.com/teawithsand/torut"
 
 [features]
