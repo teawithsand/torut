@@ -13,5 +13,11 @@ extern crate derive_more;
 extern crate serde_derive;
 
 pub mod onion;
-pub(crate) mod utils;
 
+#[cfg(feature = "control")]
+pub mod control;
+
+pub mod utils;
+
+#[cfg(fuzzing)]
+pub mod fuzz;
