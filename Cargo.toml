@@ -33,6 +33,7 @@ base64 = { version = "0.10", optional = true }
 tokio = { version = "0.2", features = ["io-util"], optional = true }
 
 # for fuzzing right now
+# TODO(reawithsand): fix it somehow
 # tokio = { version = "0.2", optional = true, features = ["full"] }
 
 [dev-dependencies]
