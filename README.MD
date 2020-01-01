@@ -35,7 +35,3 @@ In order to enable tests which use tor use `RUSTFLAGS="--cfg=testtor"`
 
 Please also note that some of tests may fail against older 
 versions of tor(for instance with apt-get installed one on default ubuntu installation)
-
-# Note
-Some of checks used in the protocol implementation may be overly restrictive.
-If one was really found to be so open an issue.
