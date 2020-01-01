@@ -5,6 +5,10 @@ Torut is tor controller written in rust similar to
 It tries to reasonably implement [specification of tor control port proto](https://gitweb.torproject.org/torspec.git/tree/control-spec.txt)
 It works in asynchronously with tokio and async/await.
 
+### IT IS NOT COMPLETED YET! 
+It's work in progress right now.
+Onion service generation/serialization seems quite complete though.
+
 It does implements onion service key and address generation and serialization on it's own without tor process.
 
 Right now logic is quite tightly coupled with tokio so there is no way to
