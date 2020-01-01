@@ -1,4 +1,5 @@
 # torut
+[![Build Status](https://travis-ci.org/teawithsand/torut.svg?branch=master)](https://travis-ci.org/teawithsand/torut)
 
 Torut is tor controller written in rust similar to 
 [stem](https://stem.torproject.org/) or [bine](https://github.com/cretz/bine).
