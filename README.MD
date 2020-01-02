@@ -29,6 +29,9 @@ so right now this dependency is fetched from it's github master branch.
 It's *probably* secure because right now it's used only for key generation but keep that in mind before using it. I'll fix this ASAP.
 You may also want to take a [look at it's github repo](https://github.com/dalek-cryptography/ed25519-dalek) first.
 
+Right now it also does not implement server authenticity check when one is connecting to tor control protocol
+but it's hardly an issue. It may prevent us from using cookie in wrong tor process instance in best case.
+
 # Testing 
 Tests in torut are split into two parts:
 these which do use tor and these which do not use tor.
