@@ -1,6 +1,9 @@
 use std::future::Future;
 
+pub use key_value::*;
 pub use quoted::*;
+#[cfg(testtor)]
+pub use testing::*;
 
 /// block_on creates tokio runtime for testing
 #[cfg(any(test, fuzzing))]
@@ -14,6 +17,21 @@ pub(crate) fn block_on<F, O>(f: F) -> O
         .unwrap();
     rt.block_on(f)
 }
+
+
+#[cfg(any(test, fuzzing))]
+pub(crate) fn block_on_with_env<F, O>(f: F) -> O
+    where F: Future<Output=O>
+{
+    use tokio::*;
+    let mut rt = runtime::Builder::new()
+        .enable_all()
+        .basic_scheduler() // single threaded one
+        .build()
+        .unwrap();
+    rt.block_on(f)
+}
+
 
 /// BASE32_ALPHA to use when encoding base32 stuff
 pub(crate) const BASE32_ALPHA: base32::Alphabet = base32::Alphabet::RFC4648 {
@@ -50,6 +68,9 @@ pub(crate) fn octal_ascii_triple_to_byte(data: [u8; 3]) -> Option<u8> {
 }
 
 mod quoted;
+mod key_value;
+#[cfg(testtor)]
+mod testing;
 
 #[cfg(test)]
 mod test {

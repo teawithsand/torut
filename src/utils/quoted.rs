@@ -327,16 +327,16 @@ mod test {
             ("\"q\\\"q\"", (Some(5), Ok("q\"q"))),
             ("\"first\"\"second\"", (Some(6), Ok("first"))),
         ].iter().cloned() {
-            let (exp_a, exp_b) = output;
-            let (a, b) = unquote_string(input);
-            let b = b.map_err(|e| e.into_bytes());
-            assert_eq!(a, exp_a);
+            let (expected_offset, expected_value) = output;
+            let (offset, value) = unquote_string(input);
+            let value = value.map_err(|e| e.into_bytes());
+            assert_eq!(offset, expected_offset);
             assert_eq!(
-                b
+                value
                     .as_ref()
                     .map(|v| v.as_ref())
                     .map_err(|e| e.as_ref()),
-                exp_b
+                expected_value
             );
         }
     }

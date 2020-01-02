@@ -5,6 +5,20 @@ use std::string::FromUtf8Error;
 
 use tokio::prelude::*;
 
+/// PreAuthConnError describes subset of `ConnError`s returned by `UnauthenticatedConn`
+#[derive(Debug, From)]
+pub enum PreAuthConnError {
+    /// Fetching authentication info twice causes tor to break connections so we forbid that and return
+    /// this error code when programmer tries to do so.
+    InfoFetchedTwice,
+
+    /// ServerHashMismatch is returned when SafeCookie auth methods client detects that
+    /// it connects to wrong server.
+    ///
+    /// Right now it's not implemented and is never returned.
+    ServerHashMismatch,
+}
+
 /// ConnError is able to wrap any error that a connection may return
 #[derive(Debug, From)]
 pub enum ConnError {
@@ -12,6 +26,12 @@ pub enum ConnError {
     Utf8Error(Utf8Error),
     FromUtf8Error(FromUtf8Error),
     ParseIntError(ParseIntError),
+
+    PreAuthConnError(PreAuthConnError),
+
+    /// Invalid(or unexpected) response code was returned from tor controller.
+    /// Usually this indicates some error on tor's side
+    InvalidResponseCode(u16),
 
     InvalidFormat,
     InvalidCharacterFound,
@@ -79,6 +99,33 @@ impl<S> Conn<S>
         // 4. Multiline responses are created with `XXX-DDD` where XXX is code and DDD is arbitrary data
         // 5. So called(at least I call it) "multiline mode" can be enabled with `XXX+DDD[\r\nDDD]..\r\n.\r\n`
         //    where XXX is code and DDD are arbitrary data blocks. It's done once single blank line with dot is found.
+        /*
+        Appropriate docs section:
+            2.3. Replies from Tor to the controller
+
+                Reply = SyncReply / AsyncReply
+                SyncReply = *(MidReplyLine / DataReplyLine) EndReplyLine
+                AsyncReply = *(MidReplyLine / DataReplyLine) EndReplyLine
+
+                MidReplyLine = StatusCode "-" ReplyLine
+                DataReplyLine = StatusCode "+" ReplyLine CmdData
+                EndReplyLine = StatusCode SP ReplyLine
+                ReplyLine = [ReplyText] CRLF
+                ReplyText = XXXX
+                StatusCode = 3DIGIT
+
+                Multiple lines in a single reply from Tor to the controller are guaranteed to
+                share the same status code. Specific replies are mentioned below in section 3,
+                and described more fully in section 4.
+
+                [Compatibility note:  versions of Tor before 0.2.0.3-alpha sometimes
+                generate AsyncReplies of the form "*(MidReplyLine / DataReplyLine)".
+                This is incorrect, but controllers that need to work with these
+                versions of Tor should be prepared to get multi-line AsyncReplies with
+                the final line (usually "650 OK") omitted.]
+
+                # Torut developer note: above compatibility note is not implemented
+        */
 
         let mut lines = Vec::new();
         let mut response_code = None;
@@ -115,6 +162,11 @@ impl<S> Conn<S>
                 if current_line_buffer.len() == 3 {
                     let text = std::str::from_utf8(&current_line_buffer)?;
                     let parsed_response_code = u16::from_str(text)?;
+
+                    // some fancy behaviour of from str may occur(?)
+                    // let's leave this assert even for prod use
+                    assert!(parsed_response_code < 1000, "Invalid response code");
+
                     if let Some(response_code) = response_code {
                         if response_code != parsed_response_code {
                             return Err(ConnError::ResponseCodeMismatch);
@@ -142,7 +194,7 @@ impl<S> Conn<S>
                         state = 4;
                     }
                     // other characters are not allowed
-                    b @ _ => {
+                    _ => {
                         return Err(ConnError::InvalidCharacterFound);
                     }
                 }

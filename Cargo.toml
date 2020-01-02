@@ -4,16 +4,15 @@ version = "0.1.0"
 authors = ["teawithsand <teawithsand@gmail.com>"]
 edition = "2018"
 license = "MIT"
-license-file = "LICENSE.MD"
 description = "torut is reasonable tor controller written in rust utilizing tokio for async communication"
 repository = "https://github.com/teawithsand/torut"
 
 [features]
 default = ["serialize", "v2", "v3", "control"]
-serialize = ["serde", "serde_derive"]
-control = ["tokio", "rand", "base64"]
-v2 = ["openssl", "base32", "base64"]
-v3 = ["rand", "ed25519-dalek", "base32", "base64"]
+serialize = ["serde", "serde_derive", "base32", "base64"]
+control = ["tokio", "rand", "hex", "sha2", "hmac"]
+v2 = ["openssl", "base32", "base64", "sha1"]
+v3 = ["rand", "ed25519-dalek", "base32", "base64", "sha3"]
 
 [badges]
 travis-ci = { repository = "teawithsand/torut", branch = "master" }
@@ -26,15 +25,17 @@ derive_more = "0.15.0"
 
 openssl = { version="0.10", optional = true }
 
-sha3 = "0.8" # for onion service v3 signature
-sha2 = "0.8" # for ed25519-dalek key
-sha1 = "0.6" # for onion service v2 signature
+sha3 = { version = "0.8", optional = true } # for onion service v3 signature
+sha2 = { version = "0.8", optional = true } # for ed25519-dalek key
+sha1 = { version = "0.6", optional = true } # for onion service v2 signature
+hmac = { version = "0.7", optional = true } # for authentication with tor controller
 
 # Required by ed25519-dalek didn't compile for me complaining about rand's crate thread_rng...
 ed25519-dalek = { git = "https://github.com/dalek-cryptography/ed25519-dalek", branch="master", optional = true }
 rand = { version = "0.7", optional = true }
 base32 = { version = "0.4.0", optional = true }
 base64 = { version = "0.10", optional = true }
+hex = { version = "0.4", optional = true }
 
 tokio = { version = "0.2", features = ["io-util"], optional = true }
 
