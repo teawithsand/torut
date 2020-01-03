@@ -8,7 +8,7 @@ use sha2::Sha256;
 use tokio::io::AsyncRead;
 use tokio::prelude::AsyncWrite;
 
-use crate::control::conn::{AuthenticatedConn, Conn, ConnError, PreAuthConnError};
+use crate::control::conn::{AuthenticatedConn, Conn, ConnError, UnauthenticatedConnError};
 use crate::control::primitives::{TorAuthData, TorAuthMethod, TorPreAuthInfo};
 use crate::utils::{parse_single_key_value, quote_string, unquote_string};
 
@@ -239,7 +239,7 @@ impl<S> UnauthenticatedConn<S>
         */
 
         if self.was_protocol_info_loaded {
-            return Err(ConnError::PreAuthConnError(PreAuthConnError::InfoFetchedTwice));
+            return Err(ConnError::UnauthenticatedConnError(UnauthenticatedConnError::InfoFetchedTwice));
         }
 
         self.conn.write_data(b"PROTOCOLINFO 1\r\n").await?;
@@ -320,7 +320,7 @@ impl<S> UnauthenticatedConn<S>
 
     /// into_authenticated creates [`AuthenticatedConn`] from this one without checking if it makes any sense.
     /// It should be called after successful call to `authenticate`.
-    pub async fn into_authenticated(self) -> AuthenticatedConn<S> {
+    pub async fn into_authenticated<H>(self) -> AuthenticatedConn<S, H> {
         AuthenticatedConn::from(self.conn)
     }
 }

@@ -32,6 +32,20 @@ pub(crate) fn block_on_with_env<F, O>(f: F) -> O
     rt.block_on(f)
 }
 
+/// is_valid_keyword checks if given text is valid tor keyword for functions like `GETCONF` or `SETCONF`
+///
+/// Note: this function was not tested against torCP but it's simple and robust and should work.
+pub(crate) fn is_valid_keyword(config_option: &str) -> bool {
+    if config_option.is_empty() {
+        return false;
+    }
+    for c in config_option.chars() {
+        if !c.is_ascii_uppercase() && c != '_' {
+            return false;
+        }
+    }
+    true
+}
 
 /// BASE32_ALPHA to use when encoding base32 stuff
 pub(crate) const BASE32_ALPHA: base32::Alphabet = base32::Alphabet::RFC4648 {

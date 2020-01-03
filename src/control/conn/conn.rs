@@ -5,9 +5,9 @@ use std::string::FromUtf8Error;
 
 use tokio::prelude::*;
 
-/// PreAuthConnError describes subset of `ConnError`s returned by `UnauthenticatedConn`
+/// UnauthenticatedConnError describes subset of `ConnError`s returned by `UnauthenticatedConn`
 #[derive(Debug, From)]
-pub enum PreAuthConnError {
+pub enum UnauthenticatedConnError {
     /// Fetching authentication info twice causes tor to break connections so we forbid that and return
     /// this error code when programmer tries to do so.
     InfoFetchedTwice,
@@ -19,6 +19,14 @@ pub enum PreAuthConnError {
     ServerHashMismatch,
 }
 
+
+/// AuthenticatedConnError describes subset of `ConnError`s returned by `AuthenticatedConn`
+#[derive(Debug, From)]
+pub enum AuthenticatedConnError {
+    /// InvalidKeywordValue when user-provided keyword is not valid
+    InvalidKeywordValue,
+}
+
 /// ConnError is able to wrap any error that a connection may return
 #[derive(Debug, From)]
 pub enum ConnError {
@@ -27,7 +35,8 @@ pub enum ConnError {
     FromUtf8Error(FromUtf8Error),
     ParseIntError(ParseIntError),
 
-    PreAuthConnError(PreAuthConnError),
+    UnauthenticatedConnError(UnauthenticatedConnError),
+    AuthenticatedConnError(AuthenticatedConnError),
 
     /// Invalid(or unexpected) response code was returned from tor controller.
     /// Usually this indicates some error on tor's side
