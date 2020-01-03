@@ -6,3 +6,6 @@ At least create a docker container so testing with tor is reasonably predictable
 Migrate away from openssl for v2 key (de)serialization. Something more lightweight would be better.
 
 Cleanup pub(crate) for fuzzing functions. Create modules exporting fuzzing stuff and then reexport them in src/fuzz.rs
+
+Add tests for conditional compilation features on travis and some bash file
+ So one can test if code compiles on all configurations of features enabled not only default or all features
