@@ -4,6 +4,7 @@ use std::process::{Child, Command, Stdio};
 
 const ENV_VAR_NAME: &str = "TORUT_TESTING_TOR_BINARY";
 
+// TODO(teawithsand): more this port to enviroment variable
 /// TOR_TESTING_PORT used as default testing port for tor control proto listener
 pub(crate) const TOR_TESTING_PORT: u16 = 49625;
 

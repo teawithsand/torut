@@ -8,10 +8,11 @@ use sha2::Sha256;
 use tokio::io::AsyncRead;
 use tokio::prelude::AsyncWrite;
 
-use crate::control::conn::{Conn, ConnError, PreAuthConnError};
+use crate::control::conn::{AuthenticatedConn, Conn, ConnError, PreAuthConnError};
 use crate::control::primitives::{TorAuthData, TorAuthMethod, TorPreAuthInfo};
 use crate::utils::{parse_single_key_value, quote_string, unquote_string};
 
+// note: unlike authenticated conn, unauthenticated conn does not do any asynchronous event handling
 /// UnauthenticatedConn represents connection to torCP which is not authenticated yet
 /// and for this reason only limited amount of operations may be performed on it.
 ///
@@ -315,6 +316,12 @@ impl<S> UnauthenticatedConn<S>
             return Err(ConnError::InvalidResponseCode(code));
         }
         Ok(())
+    }
+
+    /// into_authenticated creates [`AuthenticatedConn`] from this one without checking if it makes any sense.
+    /// It should be called after successful call to `authenticate`.
+    pub async fn into_authenticated(self) -> AuthenticatedConn<S> {
+        AuthenticatedConn::from(self.conn)
     }
 }
 

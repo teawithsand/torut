@@ -77,11 +77,11 @@ mod test {
             ),
             (
                 "KEY=\"VALUE\"",
-                Some((("KEY", "\"VALUE\"")))
+                Some(("KEY", "\"VALUE\""))
             ),
             (
                 "KEY=Some\nMultiline\nValue\nIt\nHappens\nSometimes",
-                Some((("KEY", "Some\nMultiline\nValue\nIt\nHappens\nSometimes"))),
+                Some(("KEY", "Some\nMultiline\nValue\nIt\nHappens\nSometimes")),
             )
         ].iter().cloned() {
             if let Some(o) = o {
