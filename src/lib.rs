@@ -6,6 +6,8 @@
 //! # Usage security
 //! Take a look at security considerations section of `README.MD`
 
+#![forbid(unsafe_code)]
+
 #[macro_use]
 extern crate derive_more;
 #[cfg(feature = "serialize")]
