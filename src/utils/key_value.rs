@@ -30,6 +30,14 @@ pub fn parse_key_value() {}
 /// - if value as quoted string enclosing quote is not last character of text
 ///
 /// It *does not* return an error when key value is empty string so format is: `="asdf"`
+///
+/// # Example
+/// ```
+/// use torut::utils::parse_single_key_value;
+/// assert_eq!(parse_single_key_value("KEY=VALUE"), Ok(("KEY", "VALUE")));
+/// assert_eq!(parse_single_key_value("INVALID"), Err(()));
+/// assert_eq!(parse_single_key_value("KEY=\"QUOTED VALUE\""), Ok(("KEY", "\"QUOTED VALUE\"")));
+/// ```
 pub fn parse_single_key_value(text: &str) -> Result<(&str, &str), ()>
 {
     assert!(text.len() <= std::usize::MAX - 1, "too long string provided to `parse_single_key_value`"); // notice this `+ 1` next to key offset
