@@ -8,6 +8,7 @@ description = "torut is reasonable tor controller written in rust utilizing toki
 repository = "https://github.com/teawithsand/torut"
 homepage = "https://github.com/teawithsand/torut"
 readme = "README.MD"
+keywords = ["tor", "controller", "tokio", "onion"]
 
 [features]
 default = ["serialize", "v2", "v3", "control"]
