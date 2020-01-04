@@ -4,7 +4,7 @@
 Torut is tor controller written in rust similar to 
 [stem](https://stem.torproject.org/) or [bine](https://github.com/cretz/bine).
 It tries to reasonably implement [specification of tor control port proto](https://gitweb.torproject.org/torspec.git/tree/control-spec.txt)
-It works in asynchronously with tokio and async/await.
+It works asynchronously with tokio and async/await.
 
 It does implements onion service key and address generation and serialization on it's own without tor process.
 
@@ -20,8 +20,6 @@ that it should not be used for any security critical project yet.
 
 This crate is of course as safe as tor instance that you are using so keep your software up to date.
 
-Also right now due to some issues I was not able to fetch(compile to be precise) ed25519-dalek from crates.io
-so right now this dependency is fetched from it's github master branch.
 Right now it uses `1.0.0-pre.3` version of `ed25519-dalek` library for v3 onion services
 which may not be well-established yet. 
 
