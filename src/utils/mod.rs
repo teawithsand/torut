@@ -47,6 +47,20 @@ pub(crate) fn is_valid_keyword(config_option: &str) -> bool {
     true
 }
 
+/// is_valid_event returns true if name is valid event name or false if it should not be used in context of
+/// `SETEVENTS` call
+pub(crate) fn is_valid_event(event_name: &str) -> bool {
+    if event_name.is_empty() {
+        return false;
+    }
+    for c in event_name.chars() {
+        if !c.is_ascii_uppercase() {
+            return false;
+        }
+    }
+    true
+}
+
 /// is_valid_hostname checks if given text is valid hostname which can be resolved with tor
 pub(crate) fn is_valid_hostname(config_option: &str) -> bool {
     if config_option.is_empty() {

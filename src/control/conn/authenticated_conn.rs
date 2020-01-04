@@ -7,7 +7,7 @@ use tokio::prelude::*;
 
 use crate::control::conn::{AuthenticatedConnError, Conn, ConnError};
 use crate::control::primitives::AsyncEvent;
-use crate::utils::{is_valid_hostname, is_valid_keyword, is_valid_option, parse_single_key_value, quote_string, unquote_string};
+use crate::utils::{is_valid_event, is_valid_hostname, is_valid_keyword, is_valid_option, parse_single_key_value, quote_string, unquote_string};
 
 /// AuthenticatedConn represents connection to TorCP after it has been authenticated so one may
 /// perform various operations on it.
@@ -410,7 +410,7 @@ impl<S, F, H> AuthenticatedConn<S, H>
         if is_valid_hostname(hostname) {
             return Err(ConnError::AuthenticatedConnError(AuthenticatedConnError::InvalidHostnameValue));
         }
-        self.conn.write_data(&format!("RESOLVE {}\r\n", hostname).as_bytes());
+        self.conn.write_data(&format!("RESOLVE {}\r\n", hostname).as_bytes()).await?;
         let (code, _) = self.recv_response().await?;
         if code != 250 {
             return Err(ConnError::InvalidResponseCode(code));
@@ -431,7 +431,7 @@ impl<S, F, H> AuthenticatedConn<S, H>
     /// Result is passed as `ADDRMAP` event so one should setup event listener to use it.
     /// It's `NewAddressMapping` event.
     pub async fn reverse_resolve(&mut self, address: Ipv4Addr) -> Result<(), ConnError> {
-        self.conn.write_data(&format!("RESOLVE mode=reverse {}\r\n", address.to_string()).as_bytes());
+        self.conn.write_data(&format!("RESOLVE mode=reverse {}\r\n", address.to_string()).as_bytes()).await?;
         let (code, _) = self.recv_response().await?;
         if code != 250 {
             return Err(ConnError::InvalidResponseCode(code));
@@ -547,7 +547,7 @@ impl<S, F, H> AuthenticatedConn<S, H>
             listeners,
         )?;
         res.push_str("\r\n");
-        self.conn.write_data(res.as_bytes());
+        self.conn.write_data(res.as_bytes()).await?;
 
         // we do not really care about contents of response
         // we can derive all the data from tor's objects at the torut level
@@ -587,7 +587,7 @@ impl<S, F, H> AuthenticatedConn<S, H>
             listeners,
         )?;
         res.push_str("\r\n");
-        self.conn.write_data(res.as_bytes());
+        self.conn.write_data(res.as_bytes()).await?;
 
         // we do not really care about contents of response
         // we can derive all the data from tor's objects at the torut level
@@ -611,6 +611,39 @@ impl<S, F, H> AuthenticatedConn<S, H>
             }
         }
         self.conn.write_data(&format!("DEL_ONION {}\r\n", identifier_without_dot_onion).as_bytes()).await?;
+        let (code, _) = self.recv_response().await?;
+        if code != 250 {
+            return Err(ConnError::InvalidResponseCode(code));
+        }
+        Ok(())
+    }
+
+    /// set_events sends `SETEVENTS` command which instructs tor process to report controller all the events
+    /// of given kind that occur to this controller.
+    ///
+    /// # Note
+    /// Call to `set_events` unsets all previously set event listeners.
+    /// For instance in order to clear event all listeners use `set_events` with empty iterator.
+    /// To listen for `CIRC` event pass iterator with single `CIRC` entry.
+    /// To listen for `WARN` and `ERR` log messages but no more to `CIRC` event pass iterator with two entries: `WARN` and `CIRC`
+    ///
+    /// # Notes on using options
+    /// Extended parameter is ignored in tor newer than `0.2.2.1-alpha` and it's always switched on.
+    /// It should default to false.
+    pub async fn set_events(&mut self, extended: bool, kinds: &mut impl Iterator<Item=&str>) -> Result<(), ConnError> {
+        let mut req = String::from("SETEVENTS");
+        if extended {
+            req.push_str(" EXTENDED");
+        }
+        for k in kinds {
+            if !is_valid_event(k) {
+                return Err(ConnError::AuthenticatedConnError(AuthenticatedConnError::InvalidEventName));
+            }
+            req.push(' ');
+            req.push_str(k);
+        }
+        req.push_str("\r\n");
+        self.conn.write_data(req.as_bytes()).await?;
         let (code, _) = self.recv_response().await?;
         if code != 250 {
             return Err(ConnError::InvalidResponseCode(code));
@@ -869,6 +902,34 @@ mod test_with_tor {
             }
         });
     }
+
+    #[test]
+    fn test_can_listen_to_events_on_tor() {
+        let c = run_testing_tor_instance(
+            &[
+                "--DisableNetwork", "1",
+                "--ControlPort", &TOR_TESTING_PORT.to_string(),
+            ]);
+
+        block_on_with_env(async move {
+            let mut s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
+            let mut utc = UnauthenticatedConn::new(s);
+            let proto_info = utc.load_protocol_info().await.unwrap();
+
+            assert!(proto_info.auth_methods.contains(&TorAuthMethod::Null));
+            utc.authenticate(&TorAuthData::Null).await.unwrap();
+            let mut ac = utc.into_authenticated().await;
+            ac.set_async_event_handler(Some(|_| {
+                async move { Ok(()) }
+            }));
+
+            let _ = ac.set_events(false, &mut [
+                "CIRC", "ADDRMAP"
+            ].iter().map(|v| *v)).await.unwrap();
+        });
+    }
+
+    // TODO(teawithsand): tests for onion services
 }
 
 #[cfg(fuzzing)]

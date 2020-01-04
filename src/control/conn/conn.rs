@@ -36,6 +36,9 @@ pub enum AuthenticatedConnError {
 
     /// InvalidOnionServiceIdentifier is returned when onion service identifier passed as argument is invalid
     InvalidOnionServiceIdentifier,
+
+    /// InvalidEventName is returned when name of given event passed to conn is invalid and may corrupt connection flow
+    InvalidEventName,
 }
 
 /// ConnError is able to wrap any error that a connection may return
