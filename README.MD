@@ -38,7 +38,7 @@ Imagine that `RESOLVE` command is implemented badly and input is untrusted(for e
 Then attacker can put domain like: 
 `example.com\r\nDROPGUARDS`
 so command looks like 
-`RESOLVE Address=example.com\r\nDROPGUARDS\r\n`
+`RESOLVE example.com\r\nDROPGUARDS\r\n`
 
 which would cause `DROPGUARDS` command to be issued on tor instance.
 Knowing timing of when this happened eavesdropper may try to deanonymize client. 
