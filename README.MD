@@ -29,6 +29,20 @@ so right now this dependency is fetched from it's github master branch.
 It's *probably* secure because right now it's used only for key generation but keep that in mind before using it. I'll fix this ASAP.
 You may also want to take a [look at it's github repo](https://github.com/dalek-cryptography/ed25519-dalek) first.
 
+## Attack scenario
+So one may think that torCP client is not an attack surface but it may lead to deanonymization of client under
+some circumstances(or even RCE in case of bug in tor or "feature" of tor control protocol intended for trusted input
+but it's much less probable. Tor has really good security history compared to other C projects).
+Imagine that `RESOLVE` command is implemented badly and input is untrusted(for example we resolve domain from some email software)
+
+Then attacker can put domain like: 
+`example.com\r\nDROPGUARDS`
+so command looks like 
+`RESOLVE Address=example.com\r\nDROPGUARDS\r\n`
+
+which would cause `DROPGUARDS` command to be issued on tor instance.
+Knowing timing of when this happened eavesdropper may try to deanonymize client. 
+
 ## Less important security considerations
 Right now it also does not implement server authenticity check when one is connecting to tor control protocol
 but it's hardly an issue. 
