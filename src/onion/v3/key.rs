@@ -40,6 +40,10 @@ impl PartialEq for TorSecretKeyV3 {
 }
 
 impl TorSecretKeyV3 {
+    pub(crate) fn as_tor_proto_encoded(&self) -> String {
+        base32::encode(BASE32_ALPHA, &self.0[..])
+    }
+
     /// generate generates new `TorSecretKeyV3`
     pub fn generate() -> Self {
         let sk: SecretKey = SecretKey::generate(&mut thread_rng());

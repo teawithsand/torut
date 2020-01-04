@@ -1,7 +1,7 @@
 use std::borrow::Cow;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::future::Future;
-use std::net::Ipv4Addr;
+use std::net::{Ipv4Addr, SocketAddr};
 
 use tokio::prelude::*;
 
@@ -199,6 +199,7 @@ impl<S, F, H> AuthenticatedConn<S, H>
             call.push(' ');
             call.push_str(k);
             if let Some(value) = value {
+                // string quoting makes value safe to use in context of connection
                 let value = quote_string(value.as_bytes());
                 call.push('=');
                 call.push_str(&value);
@@ -438,10 +439,192 @@ impl<S, F, H> AuthenticatedConn<S, H>
         Ok(())
     }
 
+    // note: there is no \r\n at the end
+    fn setup_onion_service_call<'a>(
+        is_rsa: bool,
+        key_blob: &str,
+        detach: bool,
+        non_anonymous: bool,
+        max_streams_close_circuit: bool,
+        max_num_streams: Option<u16>,
+        listeners: &mut impl Iterator<Item=&'a (u16, SocketAddr)>,
+    ) -> Result<String, AuthenticatedConnError> {
+        let mut res = String::new();
+        res.push_str("ADD_ONION ");
+        if is_rsa {
+            res.push_str("RSA1024");
+        } else {
+            res.push_str("ED25519-V3");
+        }
+        res.push(':');
+        res.push_str(key_blob);
+        res.push(' ');
+
+        {
+            let mut flags = Vec::new();
+            flags.push("DiscardPK");
+            if detach {
+                flags.push("Detach");
+            }
+            if non_anonymous {
+                flags.push("NonAnonymous");
+            }
+            if max_streams_close_circuit {
+                flags.push("MaxStreamsCloseCircuit");
+            }
+            if !flags.is_empty() {
+                res.push_str("Flags=");
+                res.push_str(&flags.join(" "));
+                res.push(' ');
+            }
+        }
+
+        {
+            if let Some(max_num_streams) = max_num_streams {
+                res.push_str(&format!("MaxStreams={} ", max_num_streams));
+                res.push_str(" ");
+            }
+        }
+
+        {
+            let mut is_first = true;
+            let mut ports = HashSet::new();
+            for (port, address) in listeners {
+                if !is_first {
+                    res.push(' ');
+                }
+                if ports.contains(port) {
+                    return Err(AuthenticatedConnError::InvalidListenerSpecification);
+                }
+                ports.insert(port);
+                is_first = false;
+                res.push_str(&format!("Port={},{}", port, address));
+            }
+            // zero iterations of above loop has ran
+            if is_first {
+                return Err(AuthenticatedConnError::InvalidListenerSpecification);
+            }
+            res.push(' ');
+        }
+
+        Ok(res)
+    }
+
+    #[cfg(any(feature = "v2"))]
+    /// add_onion sends `ADD_ONION` command which spins up new onion service.
+    /// Using given tor secret key and some configuration values.
+    ///
+    /// For onion service v3 take a look at `add_onion_v3`
+    ///
+    /// # Parameters
+    /// `key` - key to use to start onion service
+    /// `detach` - if set to `false` it makes onion service disappear once control connection is closed
+    /// `non_anonymous` - if set to `true` it runs special single hop onion service. It can't be done on default compilation of tor.
+    /// `max_streams_close_circuit` - if set to `true` closes circuit if max streams is reached
+    /// `max_num_streams` - maximum amount of streams which may be attached to RP point. Zero is unlimited.
+    ///   `None` is default and may vary depending on tor version being used.
+    /// `listeners` - set of pairs of ports and addresses to which connections should be redirected to.
+    /// Must contain at least one entry. Otherwise error is returned.
+    ///
+    /// It does not support basic auth yet.
+    /// It does not support tor-side generated keys yet.
+    pub async fn add_onion_v2(
+        &mut self,
+        key: &crate::onion::TorSecretKeyV2,
+        detach: bool,
+        non_anonymous: bool,
+        max_streams_close_circuit: bool,
+        max_num_streams: Option<u16>,
+        listeners: &mut impl Iterator<Item=&(u16, SocketAddr)>,
+    ) -> Result<(), ConnError> {
+        let mut res = Self::setup_onion_service_call(
+            true,
+            &key.as_tor_proto_encoded(),
+            detach,
+            non_anonymous,
+            max_streams_close_circuit,
+            max_num_streams,
+            listeners,
+        )?;
+        res.push_str("\r\n");
+        self.conn.write_data(res.as_bytes());
+
+        // we do not really care about contents of response
+        // we can derive all the data from tor's objects at the torut level
+        let (code, _) = self.recv_response().await?;
+        if code != 250 {
+            return Err(ConnError::InvalidResponseCode(code));
+        }
+        Ok(())
+    }
+
+    #[cfg(any(feature = "v3"))]
+    /// add_onion sends `ADD_ONION` command which spins up new onion service.
+    /// Using given tor secret key and some configuration values.
+    ///
+    /// For onion service v2 take a look at `add_onion_v2`
+    ///
+    /// # Parameters
+    /// Take a look at `add_onion_v2`. This function accepts same parameter.
+    ///
+    /// It does not support tor-side generated keys yet.
+    pub async fn add_onion_v3(
+        &mut self,
+        key: &crate::onion::TorSecretKeyV3,
+        detach: bool,
+        non_anonymous: bool,
+        max_streams_close_circuit: bool,
+        max_num_streams: Option<u16>,
+        listeners: &mut impl Iterator<Item=&(u16, SocketAddr)>,
+    ) -> Result<(), ConnError> {
+        let mut res = Self::setup_onion_service_call(
+            false,
+            &key.as_tor_proto_encoded(),
+            detach,
+            non_anonymous,
+            max_streams_close_circuit,
+            max_num_streams,
+            listeners,
+        )?;
+        res.push_str("\r\n");
+        self.conn.write_data(res.as_bytes());
+
+        // we do not really care about contents of response
+        // we can derive all the data from tor's objects at the torut level
+        let (code, _) = self.recv_response().await?;
+        if code != 250 {
+            return Err(ConnError::InvalidResponseCode(code));
+        }
+        Ok(())
+    }
+
+    /// del_onion sends `DEL_ONION` command which stops onion service.
+    ///
+    /// It returns an error if identifier is not valid.
+    pub async fn del_onion(&mut self, identifier_without_dot_onion: &str) -> Result<(), ConnError> {
+        for c in identifier_without_dot_onion.chars() {
+            match c {
+                'A'..='Z' | '2'..='7' | '=' => {}
+                _ => {
+                    return Err(ConnError::AuthenticatedConnError(AuthenticatedConnError::InvalidOnionServiceIdentifier));
+                }
+            }
+        }
+        self.conn.write_data(&format!("DEL_ONION {}\r\n", identifier_without_dot_onion).as_bytes()).await?;
+        let (code, _) = self.recv_response().await?;
+        if code != 250 {
+            return Err(ConnError::InvalidResponseCode(code));
+        }
+        Ok(())
+    }
+
     /// noop implements no-operation call to tor process despite the fact that torCP does not implement it.
     /// It's used to poll any async event without blocking.
     pub async fn noop(&mut self) -> Result<(), ConnError> {
-        unimplemented!("NIY");
+        // right now noop is getting tor's version
+        // it should do
+        self.get_info("version").await?;
+        Ok(())
     }
 }
 

@@ -29,6 +29,13 @@ pub enum AuthenticatedConnError {
 
     /// InvalidHostnameValue when user-provided domain passed to resolve is not valid
     InvalidHostnameValue,
+
+    /// InvalidListenerSpecification is returned when one tries to spin up new onion service and
+    /// port settings are invalid
+    InvalidListenerSpecification,
+
+    /// InvalidOnionServiceIdentifier is returned when onion service identifier passed as argument is invalid
+    InvalidOnionServiceIdentifier,
 }
 
 /// ConnError is able to wrap any error that a connection may return

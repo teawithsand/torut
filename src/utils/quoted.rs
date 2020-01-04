@@ -247,7 +247,7 @@ pub fn unquote_string(text: &str) -> (Option<usize>, Result<Cow<str>, UnquoteStr
 /// ```
 pub fn quote_string(text: &[u8]) -> String {
     // res won't be shorter than text ever
-    let mut res = String::with_capacity(text.len());
+    let mut res = String::with_capacity(text.len() + 2);
     res.push('\"');
     for b in text.iter().copied() {
         match b {

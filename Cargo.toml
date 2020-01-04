@@ -11,7 +11,7 @@ repository = "https://github.com/teawithsand/torut"
 default = ["serialize", "v2", "v3", "control"]
 serialize = ["serde", "serde_derive", "base32", "base64"]
 control = ["tokio", "rand", "hex", "sha2", "hmac"]
-v2 = ["openssl", "base32", "base64", "sha1"]
+v2 = ["openssl", "base32", "base32", "base64", "sha1"]
 v3 = ["rand", "ed25519-dalek", "base32", "base64", "sha3"]
 
 [badges]
