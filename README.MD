@@ -44,7 +44,10 @@ despite the fact that usually(almost always) tor process is considered trusted.
 Tests in torut are split into two parts:
 these which do use tor and these which do not use tor.
 In order to enable tests which use tor use `RUSTFLAGS="--cfg=testtor"`
-and provide `TORUT_TESTING_TOR_BINARY` enviroment variable containing path to tor binary.
+and provide `TORUT_TESTING_TOR_BINARY` environment variable containing path to tor binary.
+Testing tor binary MUST be run with `--test-threads=1` for instance like:
+
+`$ RUSTFLAGS="--cfg testtor" cargo test -- --test-threads=1`
 
 Please also note that some of tests may fail against older 
 versions of tor(for instance with apt-get installed one on default ubuntu installation)

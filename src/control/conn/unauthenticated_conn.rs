@@ -202,7 +202,7 @@ impl<S> UnauthenticatedConn<S>
         let line = lines.swap_remove(0);
 
         // right now line has fixed length of some letters + 2x 64 hex chars + two spacebars
-        if line.len() != "AUTHCHALLENGE".len() + 64 * 2 + 2 {
+        if line.len() != "AUTHCHALLENGE".len() + "SERVERHASH=".len() + "SERVERNONCE=".len() + 64 * 2 + 2 {
             return Err(ConnError::InvalidFormat);
         }
         // even more! data is at the fixed offsets which allows us to write simple (and robust ofc) parser
@@ -289,26 +289,30 @@ impl<S> UnauthenticatedConn<S>
                     ).as_bytes()
                 ).await?;
                 let res = self.read_auth_challenge_response().await?;
+                // panic!("Got ACR: {:#?}", res);
 
                 // TODO(teawithsand): check server hash procedure here.
                 //  Note: it probably requires constant time compare procedure which means more dependencies probably
                 //  or some wild hacks like comparing sha256 hashes of both values(which leaks hashes values but not values itself)
 
-                let mut hmac = <Hmac<Sha256>>::new_varkey(TOR_SAFECOOKIE_CONSTANT)
-                    .expect("Any key len for hmac should be valid. If it's not then rehash data. Right?");
-                hmac.input(cookie_string.as_bytes());
-                hmac.input(&client_nonce[..]);
-                hmac.input(&res.server_nonce[..]);
+                let client_hash = {
+                    let mut hmac = <Hmac<Sha256>>::new_varkey(TOR_SAFECOOKIE_CONSTANT)
+                        .expect("Any key len for hmac should be valid. If it's not then rehash data. Right?");
+                    hmac.input(cookie.as_ref());
+                    hmac.input(&client_nonce[..]);
+                    hmac.input(&res.server_nonce[..]);
 
 
-                let res = hmac.result();
-                let code = res.code();
-                let client_hash = code.as_ref();
+                    let res = hmac.result();
+                    res.code()
+                };
+                let client_hash = client_hash.as_ref();
 
                 let mut buf = Vec::new();
                 buf.extend_from_slice(b"AUTHENTICATE ");
                 buf.extend_from_slice(hex::encode_upper(client_hash.as_ref()).as_bytes());
                 buf.extend_from_slice(b"\r\n");
+                self.conn.write_data(&buf[..]).await?;
             }
         }
         let (code, _) = self.conn.receive_data().await?;
@@ -414,8 +418,11 @@ mod test {
 mod test_tor {
     use std::net::IpAddr;
 
+    use tokio::fs::File;
     use tokio::net::TcpStream;
+    use tokio::prelude::*;
 
+    use crate::control::COOKIE_LENGTH;
     use crate::utils::{AutoKillChild, block_on_with_env, run_testing_tor_instance, TOR_TESTING_PORT};
 
     use super::*;
@@ -430,9 +437,64 @@ mod test_tor {
             let mut s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
             let mut utc = UnauthenticatedConn::new(s);
             let proto_info = utc.load_protocol_info().await.unwrap();
-            // panic!("{:#?}", proto_info);
             assert!(proto_info.auth_methods.contains(&TorAuthMethod::Null));
             utc.authenticate(&TorAuthData::Null).await.unwrap();
+            // test conn further?
+        });
+    }
+
+    #[test]
+    fn test_can_cookie_authenticate() {
+        let c = run_testing_tor_instance(
+            &[
+                "--DisableNetwork", "1",
+                "--ControlPort", &TOR_TESTING_PORT.to_string(),
+                "--CookieAuthentication", "1",
+            ]);
+
+        block_on_with_env(async move {
+            let mut s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
+            let mut utc = UnauthenticatedConn::new(s);
+            let proto_info = utc.load_protocol_info().await.unwrap();
+            // panic!("{:#?}", proto_info);
+            assert!(proto_info.auth_methods.contains(&TorAuthMethod::Cookie));
+            assert!(proto_info.cookie_file.is_some());
+            let cookie = {
+                let mut cookie_file = File::open(proto_info.cookie_file.as_ref().unwrap().as_ref()).await.unwrap();
+                let mut cookie = Vec::new();
+                cookie_file.read_to_end(&mut cookie).await.unwrap();
+                assert_eq!(cookie.len(), COOKIE_LENGTH);
+                cookie
+            };
+            utc.authenticate(&TorAuthData::Cookie(Cow::Owned(cookie))).await.unwrap();
+            // test conn further?
+        });
+    }
+
+    #[test]
+    fn test_can_safe_cookie_authenticate() {
+        let c = run_testing_tor_instance(
+            &[
+                "--DisableNetwork", "1",
+                "--ControlPort", &TOR_TESTING_PORT.to_string(),
+                "--CookieAuthentication", "1",
+            ]);
+
+        block_on_with_env(async move {
+            let mut s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
+            let mut utc = UnauthenticatedConn::new(s);
+            let proto_info = utc.load_protocol_info().await.unwrap();
+            // panic!("{:#?}", proto_info);
+            assert!(proto_info.auth_methods.contains(&TorAuthMethod::SafeCookie));
+            assert!(proto_info.cookie_file.is_some());
+            let cookie = {
+                let mut cookie_file = File::open(proto_info.cookie_file.as_ref().unwrap().as_ref()).await.unwrap();
+                let mut cookie = Vec::new();
+                cookie_file.read_to_end(&mut cookie).await.unwrap();
+                assert_eq!(cookie.len(), COOKIE_LENGTH);
+                cookie
+            };
+            utc.authenticate(&TorAuthData::SafeCookie(Cow::Owned(cookie))).await.unwrap();
             // test conn further?
         });
     }
