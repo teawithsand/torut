@@ -21,7 +21,7 @@ that it should not be used for any security critical project yet.
 This crate is of course as safe as tor instance that you are using so keep your software up to date.
 
 Right now it uses `1.0.0-pre.3` version of `ed25519-dalek` library for v3 onion services
-which may not be well-established yet. 
+The library may not be well-established yet until 1.0 release will be available. 
 
 ## Attack scenario
 So one may think that torCP client is not an attack surface but it may lead to deanonymization of client under
