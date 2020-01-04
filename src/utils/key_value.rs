@@ -1,7 +1,3 @@
-use std::borrow::Cow;
-
-use crate::utils::{unquote_string, UnquoteStringError};
-
 /*
 in fact this function is sequence of calls to `parse_single_key_value`
 /// parse_key_value parses response in following format:
@@ -82,7 +78,7 @@ mod test {
         for (i, o) in [
             (
                 "KEY=VALUE",
-                Some((("KEY", "VALUE")))
+                Some(("KEY", "VALUE"))
             ),
             (
                 "KEY=\"VALUE\"",

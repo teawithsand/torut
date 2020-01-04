@@ -21,7 +21,6 @@ pub enum TorErrorKind {
 
 impl Into<u32> for TorErrorKind {
     fn into(self) -> u32 {
-        use TorErrorKind::*;
         match self {
             TorErrorKind::ResourceExhausted => 451,
             TorErrorKind::SyntaxErrorProtocol => 500,

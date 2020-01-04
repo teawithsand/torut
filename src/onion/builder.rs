@@ -11,7 +11,7 @@ use std::net::IpAddr;
 use crate::onion::{TorPublicKeyV2, TorSecretKeyV2};
 #[cfg(feature = "v3")]
 use crate::onion::{TorPublicKeyV3, TorSecretKeyV3};
-use crate::onion::common::{TorPublicKey, TorSecretKey};
+use crate::onion::common::TorSecretKey;
 
 #[derive(Debug, Clone)]
 pub struct OnionServiceBuilder {
@@ -80,7 +80,7 @@ pub enum RunningOnionServiceKeyPair {
     V3(TorPublicKeyV3, TorSecretKeyV3),
 }
 
-/// RunningOnionService represens
+/// RunningOnionService represents
 pub struct RunningOnionService {
     pub flags: HashSet<OnionServiceFlag>,
     pub key_pair: RunningOnionServiceKeyPair,

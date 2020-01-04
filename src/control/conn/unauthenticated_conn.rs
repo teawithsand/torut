@@ -331,7 +331,6 @@ impl<S> UnauthenticatedConn<S>
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashSet;
     use std::io::Cursor;
 
     use crate::utils::block_on;

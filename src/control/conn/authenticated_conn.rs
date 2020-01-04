@@ -186,7 +186,7 @@ impl<S, F, H> AuthenticatedConn<S, H>
     /// # Error
     /// It returns error when `config_option` variable is not valid tor keyword.
     /// It returns error when tor instance returns an error.
-    pub async fn set_conf_multiple(&mut self, mut options: &mut impl Iterator<Item=(&str, Option<&str>)>) -> Result<(), ConnError>
+    pub async fn set_conf_multiple(&mut self, options: &mut impl Iterator<Item=(&str, Option<&str>)>) -> Result<(), ConnError>
     {
         let mut call = String::new();
         call.push_str("SETCONF");
@@ -252,7 +252,7 @@ impl<S, F, H> AuthenticatedConn<S, H>
         }
 
         self.conn.write_data(&format!("GETCONF {}\r\n", config_option).as_bytes()).await?;
-        let mut res = self.read_get_conf_response().await?;
+        let res = self.read_get_conf_response().await?;
 
         /*
         // note: for instance query for DISABLENETWORK may be returned as DisableNetwork=0
@@ -339,7 +339,7 @@ impl<S, F, H> AuthenticatedConn<S, H>
             return Err(ConnError::InvalidFormat);
         }
 
-        let mut v = res.into_iter().map(|(_k, v)| v).nth(0).unwrap();
+        let v = res.into_iter().map(|(_k, v)| v).nth(0).unwrap();
         if v.len() != 1 {
             eprintln!("Invalid inside res!");
             return Err(ConnError::InvalidFormat);
@@ -354,7 +354,7 @@ impl<S, F, H> AuthenticatedConn<S, H>
     /// lightly; it can increase vulnerability to tracking attacks over time.
     /// ```
     pub async fn drop_guards(&mut self) -> Result<(), ConnError> {
-        self.conn.write_data(b"DROPGUARDS\r\n");
+        self.conn.write_data(b"DROPGUARDS\r\n").await?;
         let (code, _) = self.recv_response().await?;
         if code != 250 {
             return Err(ConnError::InvalidResponseCode(code));
@@ -372,7 +372,7 @@ impl<S, F, H> AuthenticatedConn<S, H>
     /// any of those connections closes.
     /// ```
     pub async fn take_ownership(&mut self) -> Result<(), ConnError> {
-        self.conn.write_data(b"TAKEOWNERSHIP\r\n");
+        self.conn.write_data(b"TAKEOWNERSHIP\r\n").await?;
         let (code, _) = self.recv_response().await?;
         if code != 250 {
             return Err(ConnError::InvalidResponseCode(code));
@@ -388,7 +388,7 @@ impl<S, F, H> AuthenticatedConn<S, H>
     /// connection is closed.
     /// ```
     pub async fn drop_ownership(&mut self) -> Result<(), ConnError> {
-        self.conn.write_data(b"DROPOWNERSHIP\r\n");
+        self.conn.write_data(b"DROPOWNERSHIP\r\n").await?;
         let (code, _) = self.recv_response().await?;
         if code != 250 {
             return Err(ConnError::InvalidResponseCode(code));

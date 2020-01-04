@@ -1,3 +1,4 @@
+#[allow(unused_imports)]
 use std::future::Future;
 
 pub use key_value::*;
@@ -19,6 +20,7 @@ pub(crate) fn block_on<F, O>(f: F) -> O
 }
 
 
+#[allow(dead_code)]
 #[cfg(any(test, fuzzing))]
 pub(crate) fn block_on_with_env<F, O>(f: F) -> O
     where F: Future<Output=O>
