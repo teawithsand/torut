@@ -60,8 +60,8 @@ pub struct AutoKillChild {
 impl Drop for AutoKillChild {
     fn drop(&mut self) {
         self.child
-            .kill()
-            .unwrap();
+            .kill();
+        // do not unwrap. Process might have died already.
     }
 }
 

@@ -96,16 +96,13 @@ impl<S, H, F> AuthenticatedConn<S, H>
         }
         // ... followed by a final 250 OK
         if &res[res.len() - 1] != "OK" {
-            eprintln!("Not followed by 250 OK");
             return Err(ConnError::InvalidFormat);
         }
         let mut result: HashMap<String, Vec<String>> = HashMap::new();
 
         for l in res.into_iter().take(res_len - 1) {
-            eprintln!("Pre parse single key value: {:?}", l);
             let (k, v) = parse_single_key_value(&l)
                 .map_err(|_| ConnError::InvalidFormat)?;
-            eprintln!("Post parse single key value");
             if let Some(res_vec) = result.get_mut(k) {
                 res_vec.push(v.to_string());
             } else {
@@ -315,7 +312,6 @@ impl<S, F, H> AuthenticatedConn<S, H>
 
         let res = self.read_get_info_response().await?;
         if res.len() != keys.len() {
-            eprintln!("Invalid length!");
             return Err(ConnError::InvalidFormat);
         }
         // res has to contain all the provided keys
@@ -323,7 +319,6 @@ impl<S, F, H> AuthenticatedConn<S, H>
             match res.get(key) {
                 Some(v) if v.len() == count => {}
                 _ => {
-                    eprintln!("Invalid format in len!");
                     return Err(ConnError::InvalidFormat);
                 }
             }
@@ -335,13 +330,11 @@ impl<S, F, H> AuthenticatedConn<S, H>
     pub async fn get_info(&mut self, option: &str) -> Result<String, ConnError> {
         let res = self.get_info_multiple(&mut std::iter::once(option)).await?;
         if res.len() != 1 {
-            eprintln!("Invalid res len!");
             return Err(ConnError::InvalidFormat);
         }
 
         let v = res.into_iter().map(|(_k, v)| v).nth(0).unwrap();
         if v.len() != 1 {
-            eprintln!("Invalid inside res!");
             return Err(ConnError::InvalidFormat);
         }
         Ok(v.into_iter().nth(0).unwrap())
@@ -803,6 +796,9 @@ mod test {
 
 #[cfg(all(test, testtor))]
 mod test_with_tor {
+    use std::thread::sleep;
+    use std::time::Duration;
+
     use tokio::fs::File;
     use tokio::net::TcpStream;
     use tokio::prelude::*;
@@ -926,6 +922,60 @@ mod test_with_tor {
             let _ = ac.set_events(false, &mut [
                 "CIRC", "ADDRMAP"
             ].iter().map(|v| *v)).await.unwrap();
+        });
+    }
+
+    #[test]
+    fn test_can_take_ownership() {
+        let mut c = run_testing_tor_instance(
+            &[
+                "--DisableNetwork", "1",
+                "--ControlPort", &TOR_TESTING_PORT.to_string(),
+            ]);
+
+        block_on_with_env(async move {
+            let mut s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
+            let mut utc = UnauthenticatedConn::new(s);
+            let proto_info = utc.load_protocol_info().await.unwrap();
+
+            assert!(proto_info.auth_methods.contains(&TorAuthMethod::Null));
+            utc.authenticate(&TorAuthData::Null).await.unwrap();
+            let mut ac = utc.into_authenticated().await;
+            ac.set_async_event_handler(Some(|_| {
+                async move { Ok(()) }
+            }));
+
+            ac.take_ownership().await.unwrap();
+            drop(ac);
+            assert_eq!(c.wait().unwrap().code().unwrap(), 0);
+        });
+    }
+
+    #[test]
+    fn test_can_take_and_drop_ownership() {
+        let mut c = run_testing_tor_instance(
+            &[
+                "--DisableNetwork", "1",
+                "--ControlPort", &TOR_TESTING_PORT.to_string(),
+            ]);
+
+        block_on_with_env(async move {
+            let mut s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
+            let mut utc = UnauthenticatedConn::new(s);
+            let proto_info = utc.load_protocol_info().await.unwrap();
+
+            assert!(proto_info.auth_methods.contains(&TorAuthMethod::Null));
+            utc.authenticate(&TorAuthData::Null).await.unwrap();
+            let mut ac = utc.into_authenticated().await;
+            ac.set_async_event_handler(Some(|_| {
+                async move { Ok(()) }
+            }));
+
+            ac.take_ownership().await.unwrap();
+            ac.drop_ownership().await.unwrap();
+            drop(ac);
+            sleep(Duration::from_millis(2000));
+            assert!(c.try_wait().unwrap().is_none());
         });
     }
 
