@@ -25,7 +25,7 @@ pub(crate) fn block_on_with_env<F, O>(f: F) -> O
 {
     use tokio::*;
     let mut rt = runtime::Builder::new()
-        .enable_all()
+        .enable_io()
         .basic_scheduler() // single threaded one
         .build()
         .unwrap();
@@ -40,9 +40,43 @@ pub(crate) fn is_valid_keyword(config_option: &str) -> bool {
         return false;
     }
     for c in config_option.chars() {
-        if !c.is_ascii_uppercase() && c != '_' {
+        if !c.is_ascii_alphanumeric() {
             return false;
         }
+    }
+    true
+}
+
+/// is_valid_hostname checks if given text is valid hostname which can be resolved with tor
+pub(crate) fn is_valid_hostname(config_option: &str) -> bool {
+    if config_option.is_empty() {
+        return false;
+    }
+    for c in config_option.chars() {
+        if !c.is_ascii_alphanumeric() && c != '.' && c != '-' {
+            return false;
+        }
+    }
+    true
+}
+
+/// is_valid_keyword checks if given text is valid tor info keyword for `GETINFO` call
+///
+/// Note: this function was not tested against torCP but it's simple and robust and should work.
+pub(crate) fn is_valid_option(config_option: &str) -> bool {
+    if config_option.is_empty() {
+        return false;
+    }
+    for c in config_option.chars() {
+        if !c.is_ascii() || c == '\r' || c == '\n' {
+            return false;
+        }
+    }
+    if !config_option.chars().nth(0).unwrap().is_ascii_alphanumeric() {
+        return false;
+    }
+    if !config_option.chars().rev().nth(0).unwrap().is_ascii_alphanumeric() {
+        return false;
     }
     true
 }
