@@ -22,8 +22,8 @@ This crate is of course as safe as tor instance that you are using so keep your 
 
 Also right now due to some issues I was not able to fetch(compile to be precise) ed25519-dalek from crates.io
 so right now this dependency is fetched from it's github master branch.
-It's *probably* secure because right now it's used only for key generation but keep that in mind before using it. I'll fix this ASAP.
-You may also want to take a [look at it's github repo](https://github.com/dalek-cryptography/ed25519-dalek) first.
+Right now it uses `1.0.0-pre.3` version of `ed25519-dalek` library for v3 onion services
+which may not be well-established yet. 
 
 ## Attack scenario
 So one may think that torCP client is not an attack surface but it may lead to deanonymization of client under
