@@ -1,12 +1,13 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::future::Future;
+use std::net::Ipv4Addr;
 
 use tokio::prelude::*;
 
 use crate::control::conn::{AuthenticatedConnError, Conn, ConnError};
 use crate::control::primitives::AsyncEvent;
-use crate::utils::{is_valid_keyword, parse_single_key_value, quote_string, unquote_string};
+use crate::utils::{is_valid_hostname, is_valid_keyword, is_valid_option, parse_single_key_value, quote_string, unquote_string};
 
 /// AuthenticatedConn represents connection to TorCP after it has been authenticated so one may
 /// perform various operations on it.
@@ -78,6 +79,40 @@ impl<S, H, F> AuthenticatedConn<S, H>
                 return Ok((code, lines));
             }
         }
+    }
+
+    // according to docs:
+    // ```
+    // On success,
+    // one ReplyLine is sent for each requested value, followed by a final 250 OK
+    // ReplyLine.
+    // ```
+    async fn read_get_info_response(&mut self) -> Result<HashMap<String, Vec<String>>, ConnError> {
+        let (code, res) = self.recv_response().await?;
+        let res_len = res.len();
+
+        if code != 250 {
+            return Err(ConnError::InvalidResponseCode(code));
+        }
+        // ... followed by a final 250 OK
+        if &res[res.len() - 1] != "OK" {
+            eprintln!("Not followed by 250 OK");
+            return Err(ConnError::InvalidFormat);
+        }
+        let mut result: HashMap<String, Vec<String>> = HashMap::new();
+
+        for l in res.into_iter().take(res_len - 1) {
+            eprintln!("Pre parse single key value: {:?}", l);
+            let (k, v) = parse_single_key_value(&l)
+                .map_err(|_| ConnError::InvalidFormat)?;
+            eprintln!("Post parse single key value");
+            if let Some(res_vec) = result.get_mut(k) {
+                res_vec.push(v.to_string());
+            } else {
+                result.insert(k.to_string(), vec![v.to_string()]);
+            }
+        }
+        Ok(result)
     }
 
     async fn read_get_conf_response(&mut self) -> Result<HashMap<String, Vec<Option<String>>>, ConnError> {
@@ -155,23 +190,22 @@ impl<S, F, H> AuthenticatedConn<S, H>
     {
         let mut call = String::new();
         call.push_str("SETCONF");
-        let mut is_first = true;
+        let mut has_any_option = false;
         for (k, value) in options {
+            has_any_option = true;
             if !is_valid_keyword(k) {
                 return Err(ConnError::AuthenticatedConnError(AuthenticatedConnError::InvalidKeywordValue));
             }
-
-            if !is_first {
-                call.push(' ');
-                is_first = false;
-            }
-
+            call.push(' ');
             call.push_str(k);
             if let Some(value) = value {
                 let value = quote_string(value.as_bytes());
                 call.push('=');
                 call.push_str(&value);
             }
+        }
+        if !has_any_option {
+            return Ok(());
         }
         call.push_str("\r\n");
         self.conn.write_data(call.as_bytes()).await?;
@@ -190,6 +224,7 @@ impl<S, F, H> AuthenticatedConn<S, H>
         self.set_conf_multiple(&mut std::iter::once((option, value))).await
     }
 
+    // TODO(teawithsand): multiple version of get_conf
     /// get_conf sends `GETCONF` command to remote tor instance
     /// which gets one(or more but it's not implemented, use sequence of calls to this function)
     /// configuration value from tor.
@@ -218,12 +253,189 @@ impl<S, F, H> AuthenticatedConn<S, H>
         self.conn.write_data(&format!("GETCONF {}\r\n", config_option).as_bytes()).await?;
         let mut res = self.read_get_conf_response().await?;
 
+        /*
+        // note: for instance query for DISABLENETWORK may be returned as DisableNetwork=0
         return if let Some(res) = res.remove(config_option) {
             Ok(res)
         } else {
             // no given config option in response! Even if default it would be visible in hashmap.
             Err(ConnError::InvalidFormat)
         };
+        */
+        if res.len() != 1 {
+            return Err(ConnError::InvalidFormat);
+        }
+        for (k, v) in res {
+            if k.len() == config_option.len() &&
+                k.as_bytes().iter().cloned().map(|c| c.to_ascii_uppercase())
+                    .zip(config_option.as_bytes().iter().cloned().map(|c| c.to_ascii_uppercase()))
+                    .all(|(c1, c2)| c1 == c2)
+            {
+                return Ok(v);
+            }
+        }
+        return Err(ConnError::InvalidFormat);
+    }
+
+    /// get_info_multiple sends `GETINFO` command to remote tor controller.
+    /// Unlike `GETCONF` it may get values which are not part of tor's configuration.
+    ///
+    /// # Return value
+    /// Result hash map is guaranteed to value for all options provided in request.
+    /// Each one is interpreted as string without unquoting(if tor spec requires to do so for given value it has to be done manually)
+    ///
+    /// If same key was provided twice or more times it's value will occur in result these amount of times.
+    /// Values are fetched directly from tor so they probably are same but take a look at torCP docs to be sure about that.
+    ///
+    /// # Error
+    /// `AuthenticatedConnError::InvalidKeywordValue` is returned if one of provided options is invalid option value and may
+    /// break control flow integrity of transmission.
+    pub async fn get_info_multiple(&mut self, options: &mut impl Iterator<Item=&str>) -> Result<HashMap<String, Vec<String>>, ConnError> {
+        let mut call = String::new();
+        call.push_str("GETINFO");
+        let mut keys = HashMap::new();
+        for option in options {
+            if !is_valid_option(option) {
+                return Err(ConnError::AuthenticatedConnError(AuthenticatedConnError::InvalidKeywordValue));
+            }
+            if let Some(counter) = keys.get_mut(option) {
+                *counter += 1;
+            } else {
+                keys.insert(option, 1usize);
+            }
+            call.push(' ');
+            call.push_str(option);
+        }
+        call.push_str("\r\n");
+        if keys.len() == 0 {
+            return Ok(HashMap::new());
+        }
+        self.conn.write_data(call.as_bytes()).await?;
+
+        let res = self.read_get_info_response().await?;
+        if res.len() != keys.len() {
+            eprintln!("Invalid length!");
+            return Err(ConnError::InvalidFormat);
+        }
+        // res has to contain all the provided keys
+        for (key, count) in keys {
+            match res.get(key) {
+                Some(v) if v.len() == count => {}
+                _ => {
+                    eprintln!("Invalid format in len!");
+                    return Err(ConnError::InvalidFormat);
+                }
+            }
+        }
+        return Ok(res);
+    }
+
+    /// get_info is just like `get_info_multiple` but accepts only one parameter and returns only one value
+    pub async fn get_info(&mut self, option: &str) -> Result<String, ConnError> {
+        let res = self.get_info_multiple(&mut std::iter::once(option)).await?;
+        if res.len() != 1 {
+            eprintln!("Invalid res len!");
+            return Err(ConnError::InvalidFormat);
+        }
+
+        let mut v = res.into_iter().map(|(_k, v)| v).nth(0).unwrap();
+        if v.len() != 1 {
+            eprintln!("Invalid inside res!");
+            return Err(ConnError::InvalidFormat);
+        }
+        Ok(v.into_iter().nth(0).unwrap())
+    }
+
+    /// drop_guards invokes `DROPGUARDS` which(according to torCP docs):
+    ///
+    /// ```text
+    /// Tells the server to drop all guard nodes. Do not invoke this command
+    /// lightly; it can increase vulnerability to tracking attacks over time.
+    /// ```
+    pub async fn drop_guards(&mut self) -> Result<(), ConnError> {
+        self.conn.write_data(b"DROPGUARDS\r\n");
+        let (code, _) = self.recv_response().await?;
+        if code != 250 {
+            return Err(ConnError::InvalidResponseCode(code));
+        }
+        Ok(())
+    }
+
+    /// take_ownership invokes `TAKEOWNERSHIP` which(according to torCP docs):
+    ///
+    /// ```text
+    /// This command instructs Tor to shut down when this control
+    /// connection is closed. This command affects each control connection
+    /// that sends it independently; if multiple control connections send
+    /// the TAKEOWNERSHIP command to a Tor instance, Tor will shut down when
+    /// any of those connections closes.
+    /// ```
+    pub async fn take_ownership(&mut self) -> Result<(), ConnError> {
+        self.conn.write_data(b"TAKEOWNERSHIP\r\n");
+        let (code, _) = self.recv_response().await?;
+        if code != 250 {
+            return Err(ConnError::InvalidResponseCode(code));
+        }
+        Ok(())
+    }
+
+    /// drop_ownership invokes `DROPOWNERSHIP` which(according to torCP docs):
+    ///
+    /// ```text
+    /// This command instructs Tor to relinquish ownership of its control
+    /// connection. As such tor will not shut down when this control
+    /// connection is closed.
+    /// ```
+    pub async fn drop_ownership(&mut self) -> Result<(), ConnError> {
+        self.conn.write_data(b"DROPOWNERSHIP\r\n");
+        let (code, _) = self.recv_response().await?;
+        if code != 250 {
+            return Err(ConnError::InvalidResponseCode(code));
+        }
+        Ok(())
+    }
+
+    /// resolve performs dns lookup over tor. It invokes `RESOLVE` command which(according to torCP docs):
+    /// ```text
+    /// This command launches a remote hostname lookup request for every specified
+    /// request (or reverse lookup if "mode=reverse" is specified).
+    /// ```
+    /// Note: there is separate function for reverse requests.
+    ///
+    /// # Result
+    /// Result is passed as `ADDRMAP` event so one should setup event listener to use it.
+    /// It's `NewAddressMapping` event.
+    pub async fn resolve(&mut self, hostname: &str) -> Result<(), ConnError> {
+        if is_valid_hostname(hostname) {
+            return Err(ConnError::AuthenticatedConnError(AuthenticatedConnError::InvalidHostnameValue));
+        }
+        self.conn.write_data(&format!("RESOLVE {}\r\n", hostname).as_bytes());
+        let (code, _) = self.recv_response().await?;
+        if code != 250 {
+            return Err(ConnError::InvalidResponseCode(code));
+        }
+        Ok(())
+    }
+
+    /// resolve performs reverse dns lookup over tor. It invokes `RESOLVE` command which(according to torCP docs):
+    /// ```text
+    /// This command launches a remote hostname lookup request for every specified
+    /// request (or reverse lookup if "mode=reverse" is specified).
+    /// ```
+    /// Note: this function always set reverse mode
+    /// # Ipv6
+    /// TorCP doc says: `a hostname or IPv4 address`. In reverse case it may be only ipv4 address.
+    ///
+    /// # Result
+    /// Result is passed as `ADDRMAP` event so one should setup event listener to use it.
+    /// It's `NewAddressMapping` event.
+    pub async fn reverse_resolve(&mut self, address: Ipv4Addr) -> Result<(), ConnError> {
+        self.conn.write_data(&format!("RESOLVE mode=reverse {}\r\n", address.to_string()).as_bytes());
+        let (code, _) = self.recv_response().await?;
+        if code != 250 {
+            return Err(ConnError::InvalidResponseCode(code));
+        }
+        Ok(())
     }
 
     /// noop implements no-operation call to tor process despite the fact that torCP does not implement it.
@@ -309,9 +521,174 @@ mod test {
             })
         }
     }
+
+    #[test]
+    fn test_can_parse_getinfo_response() {
+        for (i, o) in [
+            (
+                b"250-version=1.2.3.4\r\n250 OK\r\n" as &[u8],
+                Some({
+                    let mut res: HashMap<String, Vec<String>> = HashMap::new();
+                    res.insert("version".to_string(), vec![
+                        "1.2.3.4".to_string()
+                    ]);
+                    res
+                })
+            ),
+            (
+                // no terminating `250 OK` line
+                b"250 version=1.2.3.4\r\n" as &[u8],
+                None,
+            ),
+            (
+                // multiple responses for same key
+                b"250-version=1.2.3.4\r\n250-version=4.3.2.1\r\n250 OK\r\n" as &[u8],
+                Some({
+                    let mut res: HashMap<String, Vec<String>> = HashMap::new();
+                    res.insert("version".to_string(), vec![
+                        "1.2.3.4".to_string(),
+                        "4.3.2.1".to_string()
+                    ]);
+                    res
+                })
+            ),
+            (
+                // multiple responses for multiple keys
+                b"250-aversion=1.2.3.4\r\n250-reversion=4.3.2.1\r\n250 OK\r\n" as &[u8],
+                Some({
+                    let mut res: HashMap<String, Vec<String>> = HashMap::new();
+                    res.insert("aversion".to_string(), vec![
+                        "1.2.3.4".to_string(),
+                    ]);
+                    res.insert("reversion".to_string(), vec![
+                        "4.3.2.1".to_string(),
+                    ]);
+                    res
+                })
+            ),
+        ].iter().cloned() {
+            block_on(async move {
+                let mut input = Cursor::new(i);
+                let conn = Conn::new(&mut input);
+                let mut conn = AuthenticatedConn::from(conn);
+                conn.set_async_event_handler(
+                    Some(|_| async move { Ok(()) })
+                );
+                if let Some(o) = o {
+                    let res = conn.read_get_info_response().await.unwrap();
+                    assert_eq!(res, o);
+                } else {
+                    conn.read_get_info_response().await.unwrap_err();
+                }
+            })
+        }
+    }
 }
 
-#[cfg(testtor)]
+#[cfg(all(test, testtor))]
 mod test_with_tor {
-    // TODO(teawithsand): tests for getopt setopt on live tor instance
+    use tokio::fs::File;
+    use tokio::net::TcpStream;
+    use tokio::prelude::*;
+
+    use crate::control::{COOKIE_LENGTH, TorAuthData, TorAuthMethod, UnauthenticatedConn};
+    use crate::utils::{block_on_with_env, run_testing_tor_instance, TOR_TESTING_PORT};
+
+    use super::*;
+
+    #[test]
+    fn test_can_get_configuration_value_set_it_and_get_it_again() {
+        let c = run_testing_tor_instance(
+            &[
+                "--DisableNetwork", "1",
+                "--ControlPort", &TOR_TESTING_PORT.to_string(),
+            ]);
+
+        block_on_with_env(async move {
+            let mut s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
+            let mut utc = UnauthenticatedConn::new(s);
+            let proto_info = utc.load_protocol_info().await.unwrap();
+
+            assert!(proto_info.auth_methods.contains(&TorAuthMethod::Null));
+            utc.authenticate(&TorAuthData::Null).await.unwrap();
+            let mut ac = utc.into_authenticated().await;
+            ac.set_async_event_handler(Some(|_| {
+                async move { Ok(()) }
+            }));
+
+            // socks port is default now
+            {
+                let res = ac.get_conf("SocksPort").await.unwrap();
+                assert_eq!(res.len(), 1);
+                assert_eq!(res[0].as_ref().map(|r| r as &str), None);
+            }
+
+            // socks port is default now
+            {
+                ac.set_conf("SocksPort", Some("17539")).await.unwrap();
+
+                {
+                    let res = ac.get_conf("SocksPort").await.unwrap();
+                    assert_eq!(res.len(), 1);
+                    assert_eq!(res[0].as_ref().map(|r| r as &str), Some("17539"));
+                }
+            }
+
+            {
+                ac.set_conf("SocksPort", Some("17539")).await.unwrap();
+
+                {
+                    let res = ac.get_conf("SocksPort").await.unwrap();
+                    assert_eq!(res.len(), 1);
+                    assert_eq!(res[0].as_ref().map(|r| r as &str), Some("17539"));
+                }
+            }
+
+            {
+                ac.set_conf("SocksPort", None).await.unwrap();
+
+                {
+                    let res = ac.get_conf("SocksPort").await.unwrap();
+                    assert_eq!(res.len(), 1);
+                    assert_eq!(res[0].as_ref().map(|r| r as &str), None);
+                }
+            }
+        });
+    }
+
+    #[test]
+    fn test_can_get_information_from_tor() {
+        let c = run_testing_tor_instance(
+            &[
+                "--DisableNetwork", "1",
+                "--ControlPort", &TOR_TESTING_PORT.to_string(),
+            ]);
+
+        block_on_with_env(async move {
+            let mut s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
+            let mut utc = UnauthenticatedConn::new(s);
+            let proto_info = utc.load_protocol_info().await.unwrap();
+
+            assert!(proto_info.auth_methods.contains(&TorAuthMethod::Null));
+            utc.authenticate(&TorAuthData::Null).await.unwrap();
+            let mut ac = utc.into_authenticated().await;
+            ac.set_async_event_handler(Some(|_| {
+                async move { Ok(()) }
+            }));
+
+            {
+                ac.set_conf("SocksPort", Some("17245")).await.unwrap();
+                ac.set_conf("DisableNetwork", Some("0")).await.unwrap();
+                let res = ac.get_info("net/listeners/socks").await.unwrap();
+                let (_, v) = unquote_string(&res);
+                let v = v.unwrap();
+                assert_eq!(v.as_ref(), "127.0.0.1:17245");
+            }
+        });
+    }
+}
+
+#[cfg(fuzzing)]
+mod fuzzing {
+    // TODO(teawithsand): fuzz functions receiving data from tor here
 }

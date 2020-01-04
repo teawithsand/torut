@@ -24,7 +24,11 @@ pub enum UnauthenticatedConnError {
 #[derive(Debug, From)]
 pub enum AuthenticatedConnError {
     /// InvalidKeywordValue when user-provided keyword is not valid
+    /// It's also returned when user-provided option is not valid.
     InvalidKeywordValue,
+
+    /// InvalidHostnameValue when user-provided domain passed to resolve is not valid
+    InvalidHostnameValue,
 }
 
 /// ConnError is able to wrap any error that a connection may return
@@ -38,6 +42,7 @@ pub enum ConnError {
     UnauthenticatedConnError(UnauthenticatedConnError),
     AuthenticatedConnError(AuthenticatedConnError),
 
+    // TODO(teawithsand): migrate this error to more meaningful one - with explanation or unknown code otherwise
     /// Invalid(or unexpected) response code was returned from tor controller.
     /// Usually this indicates some error on tor's side
     InvalidResponseCode(u16),
