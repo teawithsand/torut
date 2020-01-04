@@ -6,6 +6,7 @@ edition = "2018"
 license = "MIT"
 description = "torut is reasonable tor controller written in rust utilizing tokio for async communication"
 repository = "https://github.com/teawithsand/torut"
+homepage = "https://github.com/teawithsand/torut"
 
 [features]
 default = ["serialize", "v2", "v3", "control"]
