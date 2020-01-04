@@ -16,7 +16,7 @@ v3 = ["rand", "ed25519-dalek", "base32", "base64", "sha3"]
 
 [badges]
 travis-ci = { repository = "teawithsand/torut", branch = "master" }
-maintenance = { status = "actively-maintained" }
+maintenance = { status = "actively-developed" }
 
 [dependencies]
 serde = { version = "1.0", optional = true }
