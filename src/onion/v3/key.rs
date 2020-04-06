@@ -17,6 +17,18 @@ pub const TORV3_SECRET_KEY_LENGTH: usize = ed25519_dalek::EXPANDED_SECRET_KEY_LE
 pub struct TorPublicKeyV3(pub(crate) [u8; TORV3_PUBLIC_KEY_LENGTH]);
 
 impl TorPublicKeyV3 {
+    /// Convert this Tor public key to a byte array.
+    #[inline]
+    pub fn to_bytes(&self) -> [u8; TORV3_PUBLIC_KEY_LENGTH] {
+        self.0
+    }
+
+    /// View this Tor public key as a byte array.
+    #[inline]
+    pub fn as_bytes(&self) -> &[u8; TORV3_PUBLIC_KEY_LENGTH] {
+        &self.0
+    }
+
     /// Constructs Tor public key from a byte sequence, checking the validity
     /// of the byte sequence as Ed25519 public key, and returning appropriate
     /// error if the sequence does not represent a valid key.
