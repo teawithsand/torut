@@ -3,10 +3,18 @@ use rand::thread_rng;
 
 use crate::utils::BASE32_ALPHA;
 
+/// Standardises usage of Tor V3 public keys, which is 32 bytes
+/// (equal to Ed25519 public key length)
+pub const TORV3_PUBLIC_KEY_LENGTH: usize = ed25519_dalek::PUBLIC_KEY_LENGTH;
+
+/// Standardises usage of Tor V3 secret keys, which is 65 bytes
+/// (equal to Ed25519 extended secret key length)
+pub const TORV3_SECRET_KEY_LENGTH: usize = ed25519_dalek::EXPANDED_SECRET_KEY_LENGTH;
+
 /// TorPublicKeyV3 describes onion service's public key(use to connect to onion service)
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(transparent)]
-pub struct TorPublicKeyV3(pub(crate) [u8; 32]);
+pub struct TorPublicKeyV3(pub(crate) [u8; TORV3_PUBLIC_KEY_LENGTH]);
 
 impl TorPublicKeyV3 {
     /// Constructs Tor public key from a byte sequence, checking the validity
@@ -44,7 +52,7 @@ impl TorPublicKeyV3 {
     /// * `InternalError::BytesLengthError`
     /// * `InternalError::PointDecompressionError`
     #[inline]
-    pub fn from_bytes(bytes: &[u8; 32]) -> Result<TorPublicKeyV3, SignatureError> {
+    pub fn from_bytes(bytes: &[u8; TORV3_PUBLIC_KEY_LENGTH]) -> Result<TorPublicKeyV3, SignatureError> {
         PublicKey::from_bytes(bytes).map(|pk| TorPublicKeyV3(bytes.clone()))
     }
 }
@@ -69,7 +77,7 @@ impl std::fmt::Display for TorPublicKeyV3 {
 #[derive(Clone)]
 #[repr(transparent)]
 #[derive(From, Into)]
-pub struct TorSecretKeyV3([u8; 64]);
+pub struct TorSecretKeyV3([u8; TORV3_SECRET_KEY_LENGTH]);
 
 impl Eq for TorSecretKeyV3 {}
 
