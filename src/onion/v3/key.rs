@@ -1,4 +1,4 @@
-use ed25519_dalek::{ExpandedSecretKey, PublicKey, SecretKey};
+use ed25519_dalek::{ExpandedSecretKey, PublicKey, SecretKey, SignatureError};
 use rand::thread_rng;
 
 use crate::utils::BASE32_ALPHA;
@@ -7,6 +7,47 @@ use crate::utils::BASE32_ALPHA;
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(transparent)]
 pub struct TorPublicKeyV3(pub(crate) [u8; 32]);
+
+impl TorPublicKeyV3 {
+    /// Constructs Tor public key from a byte sequence, checking the validity
+    /// of the byte sequence as Ed25519 public key, and returning appropriate
+    /// error if the sequence does not represent a valid key.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # extern crate torut;
+    /// #
+    /// use torut::onion::TorPublicKeyV3;
+    /// use ed25519_dalek::SignatureError;
+    ///
+    /// # fn doctest() -> Result<TorPublicKeyV3, SignatureError> {
+    /// let public_key_bytes: [u8; 32] = [
+    ///    215,  90, 152,   1, 130, 177,  10, 183, 213,  75, 254, 211, 201, 100,   7,  58,
+    ///     14, 225, 114, 243, 218, 166,  35,  37, 175,   2,  26, 104, 247,   7,   81, 26];
+    ///
+    /// let public_key = TorPublicKeyV3::from_bytes(&public_key_bytes)?;
+    /// #
+    /// # Ok(public_key)
+    /// # }
+    /// #
+    /// # fn main() {
+    /// #     doctest();
+    /// # }
+    /// ```
+    ///
+    /// # Returns
+    ///
+    /// A `Result` whose okay value is a valid `TorPublicKeyV3` or whose error
+    /// value is a `ed25519_dalek::SignatureError` describing the error that
+    /// occurred. It will be either:
+    /// * `InternalError::BytesLengthError`
+    /// * `InternalError::PointDecompressionError`
+    #[inline]
+    pub fn from_bytes(bytes: &[u8; 32]) -> Result<TorPublicKeyV3, SignatureError> {
+        PublicKey::from_bytes(bytes).map(|pk| TorPublicKeyV3(bytes.clone()))
+    }
+}
 
 impl std::fmt::Debug for TorPublicKeyV3 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
