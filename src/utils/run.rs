@@ -13,13 +13,17 @@ pub struct AutoKillChild {
 
 impl From<Child> for AutoKillChild {
     fn from(c: Child) -> Self{
-        Self {
-            child: Some(c),
-        }
+        Self::new(c)
     }
 }
 
 impl AutoKillChild {
+    pub fn new(c: Child) -> Self{
+        Self{
+            child: Some(c)
+        }
+    }
+
     /// into_inner takes child from AutoKillChild.
     /// It prevents child from dying automatically after it's dropped.
     pub fn into_inner(mut self) -> Child {

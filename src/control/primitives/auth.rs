@@ -53,7 +53,7 @@ pub struct TorPreAuthInfo<'a> {
 
 // TODO(teawithsand): some helper function to automatically pick auth for library end user
 
-/// AuthenticateData contains all data required to authenticate single `UnauthenticatedConn`
+/// TorAuthData contains all data required to authenticate single `UnauthenticatedConn`
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum TorAuthData<'a> {

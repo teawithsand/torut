@@ -1,4 +1,5 @@
 use openssl::pkey::{Private, Public};
+// use crate::onion::OnionAddressV2;
 
 /// TorPublicKey describes onion service's public key V2(use to connect to onion service V2)
 ///
@@ -34,6 +35,17 @@ impl std::fmt::Display for TorPublicKeyV2 {
 
         write!(f, "TorPublicKeyV2({})", String::from_utf8_lossy(&v))
     }
+}
+
+impl TorPublicKeyV2{
+    /*
+    /// get_onion_address creates onion address from public key.
+    /// 
+    /// It can be used in place of `OnionAddressV3::from`.
+    pub fn get_onion_address(&self) -> OnionAddressV2 {
+        OnionAddressV2::from(self)
+    }
+    */
 }
 
 /// TorSecretKey describes onion service's secret key v2(used to host onion service v2)

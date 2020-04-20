@@ -10,12 +10,17 @@ use sha3::Digest;
 use crate::onion::v3::TorPublicKeyV3;
 use crate::utils::BASE32_ALPHA;
 
+/// 32 public key bytes + 2 bytes of checksum = 34
+/// (in onion address v3 there is one more byte - version eq to 3)
+/// Checksum is hardcoded in order not to recompute it.
+/// 
+/// This variable denotates byte length of OnionAddressV3.
+pub const TORV3_ONION_ADDRESS_LENGTH_BYTES: usize = 34;
+
 /// OnionAddressV3 contains public part of Tor's onion service address version 3.,
 /// It can't contain invalid onion address
 #[derive(Clone)]
-pub struct OnionAddressV3([u8; 34]);
-// 32 public key bytes + 2 bytes of checksum = 34
-// (in onion address v3 there is one more byte - version eq to 3)
+pub struct OnionAddressV3([u8; TORV3_ONION_ADDRESS_LENGTH_BYTES]);
 
 impl PartialEq for OnionAddressV3 {
     #[inline]
@@ -104,6 +109,9 @@ impl std::fmt::Display for OnionAddressParseError {
 impl FromStr for OnionAddressV3 {
     type Err = OnionAddressParseError;
 
+    /// from_str parses OnionAddressV3 from string.
+    /// 
+    /// Please note that it accepts address *without* .onion only.
     fn from_str(raw_onion_address: &str) -> Result<Self, Self::Err> {
         if raw_onion_address.as_bytes().len() != 56 {
             return Err(OnionAddressParseError::InvalidLength);
@@ -191,5 +199,13 @@ mod test {
             OnionAddressV3::from_str(oa).unwrap().to_string(),
             "p53lf57qovyuvwsc6xnrppyply3vtqm7l6pcobkmyqsiofyeznfu5uqd.onion"
         );
+    }
+
+    #[test]
+    fn test_can_convert_to_public_key_and_vice_versa() {
+        let oa = OnionAddressV3::from_str("p53lf57qovyuvwsc6xnrppyply3vtqm7l6pcobkmyqsiofyeznfu5uqd").unwrap();
+        let pk = oa.get_public_key();
+        let oa2 = pk.get_onion_address();
+        assert_eq!(oa, oa2);
     }
 }

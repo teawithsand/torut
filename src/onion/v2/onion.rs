@@ -7,6 +7,9 @@ use std::str::FromStr;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::utils::BASE32_ALPHA;
+// use crate::onion::TorPublicKeyV2;
+
+pub const TORV2_ONION_ADDRESS_LENGTH_BYTES: usize = 10;
 
 /// OnionAddressV2 contains public part of Tor's onion service address version 2.
 /// It can't contain invalid onion address(
@@ -19,8 +22,18 @@ use crate::utils::BASE32_ALPHA;
 /// # Note
 /// Onion address V2 does not contain checksum so any combination of random ten bytes satisfies requirements.
 #[derive(Clone)]
-pub struct OnionAddressV2([u8; 10]);
+pub struct OnionAddressV2([u8; TORV2_ONION_ADDRESS_LENGTH_BYTES]);
 
+// TODO(teaiwthsand): implement it
+// looks like Shallot does this
+// https://github.com/katmagic/Shallot/blob/master/src/thread.c
+/*
+impl From<&TorPublicKeyV2> for OnionAddressV2 {
+    fn from(pk: &TorPublicKeyV2) -> Self {
+        /
+    }
+}
+*/
 impl PartialEq for OnionAddressV2 {
     #[inline]
     fn eq(&self, other: &Self) -> bool {

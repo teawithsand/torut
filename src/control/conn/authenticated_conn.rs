@@ -222,7 +222,7 @@ impl<S, F, H> AuthenticatedConn<S, H>
         self.set_conf_multiple(&mut std::iter::once((option, value))).await
     }
 
-    // TODO(teawithsand): multiple version of get_conf
+    // TODO(teawithsand): multiple versions of get_conf for specifiic stuff
     /// get_conf sends `GETCONF` command to remote tor instance
     /// which gets one(or more but it's not implemented, use sequence of calls to this function)
     /// configuration value from tor.
@@ -389,6 +389,10 @@ impl<S, F, H> AuthenticatedConn<S, H>
         Ok(())
     }
 
+    // TODO(teawithsand): make async resolve with custom future with tokio which parses async event
+    //  and then notifies caller using waker 
+    //  same for reverse_resolve
+
     /// resolve performs dns lookup over tor. It invokes `RESOLVE` command which(according to torCP docs):
     /// ```text
     /// This command launches a remote hostname lookup request for every specified
@@ -403,6 +407,7 @@ impl<S, F, H> AuthenticatedConn<S, H>
         if is_valid_hostname(hostname) {
             return Err(ConnError::AuthenticatedConnError(AuthenticatedConnError::InvalidHostnameValue));
         }
+
         self.conn.write_data(&format!("RESOLVE {}\r\n", hostname).as_bytes()).await?;
         let (code, _) = self.recv_response().await?;
         if code != 250 {
@@ -424,6 +429,7 @@ impl<S, F, H> AuthenticatedConn<S, H>
     /// Result is passed as `ADDRMAP` event so one should setup event listener to use it.
     /// It's `NewAddressMapping` event.
     pub async fn reverse_resolve(&mut self, address: Ipv4Addr) -> Result<(), ConnError> {
+        // assumption: ip can't provide any malicious contents
         self.conn.write_data(&format!("RESOLVE mode=reverse {}\r\n", address.to_string()).as_bytes()).await?;
         let (code, _) = self.recv_response().await?;
         if code != 250 {
@@ -580,7 +586,7 @@ impl<S, F, H> AuthenticatedConn<S, H>
             listeners,
         )?;
         res.push_str("\r\n");
-        eprintln!("{:?}", res);
+
         self.conn.write_data(res.as_bytes()).await?;
 
         // we do not really care about contents of response
@@ -596,9 +602,9 @@ impl<S, F, H> AuthenticatedConn<S, H>
     ///
     /// It returns an error if identifier is not valid.
     pub async fn del_onion(&mut self, identifier_without_dot_onion: &str) -> Result<(), ConnError> {
-        for c in identifier_without_dot_onion.chars() {
+        for c in identifier_without_dot_onion.chars() { // limit to safe chars, so there is no injection
             match c {
-                'A'..='Z' | '2'..='7' | '=' => {}
+                'a'..='z' | 'A'..='Z' | '0'..='9' | '/' | '=' => {}
                 _ => {
                     return Err(ConnError::AuthenticatedConnError(AuthenticatedConnError::InvalidOnionServiceIdentifier));
                 }
@@ -1012,7 +1018,8 @@ mod test_with_tor {
             ac.take_ownership().await.unwrap();
             ac.drop_ownership().await.unwrap();
 
-            // ac.del_onion(key.)
+            // delete onion service so it works no more
+            ac.del_onion(&key.public().get_onion_address().get_address_without_dot_onion()).await.unwrap();
         });
     }
 
@@ -1045,6 +1052,10 @@ mod test_with_tor {
             // additional actions to check if connection is in corrupted state
             ac.take_ownership().await.unwrap();
             ac.drop_ownership().await.unwrap();
+
+            // delete onion service so it works no more
+            // TOOD(teawithsand): implement get_onion_address for TorPublicKeyV2
+            // ac.del_onion(&key.public().get_onion_address().get_address_without_dot_onion()).await.unwrap();
         });
     }
 }

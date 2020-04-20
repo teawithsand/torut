@@ -28,7 +28,7 @@ mod test {
 
     #[test]
     fn test_can_run_very_basic_tor_instance() {
-        let c = run_testing_tor_instance(&["--DisableNetwork", "1", "--ControlPort", &TOR_TESTING_PORT.to_string()]);
+        let _c = run_testing_tor_instance(&["--DisableNetwork", "1", "--ControlPort", &TOR_TESTING_PORT.to_string()]);
         // c.kill().unwrap();
     }
 }
