@@ -46,7 +46,7 @@ impl UnquoteStringError {
 pub fn unquote_string(text: &str) -> (Option<usize>, Result<Cow<str>, UnquoteStringError>) {
     // as the docs says:
     // The format is:
-    // RFC 2822(not all ofc. Some random things needed to interpret the specification)
+    // RFC 2822(not entire ofc. Some random things needed to interpret the specification)
     // -----
     // qtext           =       NO-WS-CTL /     ; Non white space controls
     //

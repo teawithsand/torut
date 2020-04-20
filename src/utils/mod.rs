@@ -1,10 +1,23 @@
 #[allow(unused_imports)]
 use std::future::Future;
 
+mod quoted;
+mod key_value;
+mod run;
+mod connect;
+
+#[cfg(testtor)]
+mod testing;
+
+
 pub use key_value::*;
 pub use quoted::*;
+pub use run::*;
+pub use connect::*;
+
 #[cfg(testtor)]
 pub use testing::*;
+
 
 /// block_on creates tokio runtime for testing
 #[cfg(any(test, fuzzing))]
@@ -131,10 +144,6 @@ pub(crate) fn octal_ascii_triple_to_byte(data: [u8; 3]) -> Option<u8> {
     return Some(res as u8);
 }
 
-mod quoted;
-mod key_value;
-#[cfg(testtor)]
-mod testing;
 
 #[cfg(test)]
 mod test {

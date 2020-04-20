@@ -1007,6 +1007,44 @@ mod test_with_tor {
             ac.add_onion_v3(&key, false, false, false, None, &mut [
                 (15787, SocketAddr::new(IpAddr::from(Ipv4Addr::new(127,0,0,1)), 15787)),
             ].iter()).await.unwrap();
+
+            // additional actions to check if connection is in corrupted state
+            ac.take_ownership().await.unwrap();
+            ac.drop_ownership().await.unwrap();
+
+            // ac.del_onion(key.)
+        });
+    }
+
+    #[test]
+    fn test_can_create_onion_service_v2() {
+        let mut c = run_testing_tor_instance(
+            &[
+                "--DisableNetwork", "1",
+                "--ControlPort", &TOR_TESTING_PORT.to_string(),
+            ]);
+
+        block_on_with_env(async move {
+            let mut s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
+            let mut utc = UnauthenticatedConn::new(s);
+            let proto_info = utc.load_protocol_info().await.unwrap();
+
+            assert!(proto_info.auth_methods.contains(&TorAuthMethod::Null));
+            utc.authenticate(&TorAuthData::Null).await.unwrap();
+            let mut ac = utc.into_authenticated().await;
+            ac.set_async_event_handler(Some(|_| {
+                async move { Ok(()) }
+            }));
+
+            let key = crate::onion::TorSecretKeyV2::generate();
+
+            ac.add_onion_v2(&key, false, false, false, None, &mut [
+                (15787, SocketAddr::new(IpAddr::from(Ipv4Addr::new(127,0,0,1)), 15787)),
+            ].iter()).await.unwrap();
+
+            // additional actions to check if connection is in corrupted state
+            ac.take_ownership().await.unwrap();
+            ac.drop_ownership().await.unwrap();
         });
     }
 }
