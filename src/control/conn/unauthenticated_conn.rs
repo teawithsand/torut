@@ -469,6 +469,24 @@ mod test_tor {
     }
 
     #[test]
+    fn test_authenticate_fails_when_invalid_method() {
+        let c = run_testing_tor_instance(
+            &[
+                "--DisableNetwork", "1",
+                "--ControlPort", &TOR_TESTING_PORT.to_string(),
+                "--CookieAuthentication", "1",
+            ]);
+
+        block_on_with_env(async move {
+            let mut s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
+            let mut utc = UnauthenticatedConn::new(s);
+            let proto_info = utc.load_protocol_info().await.unwrap();
+            assert!(!proto_info.auth_methods.contains(&TorAuthMethod::Null));
+            utc.authenticate(&TorAuthData::Null).await.unwrap_err();
+        });
+    }
+
+    #[test]
     fn test_can_safe_cookie_authenticate() {
         let c = run_testing_tor_instance(
             &[
@@ -492,6 +510,45 @@ mod test_tor {
                 cookie
             };
             utc.authenticate(&TorAuthData::SafeCookie(Cow::Owned(cookie))).await.unwrap();
+            // test conn further?
+        });
+    }
+
+    #[test]
+    fn test_can_auto_auth_with_null() {
+        let c = run_testing_tor_instance(
+            &[
+                "--DisableNetwork", "1",
+                "--ControlPort", &TOR_TESTING_PORT.to_string(),
+                // "--CookieAuthentication", "1",
+            ]);
+
+        block_on_with_env(async move {
+            let mut s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
+            let mut utc = UnauthenticatedConn::new(s);
+            let proto_info = utc.load_protocol_info().await.unwrap();
+            let ad = proto_info.make_auth_data().unwrap().unwrap();
+            utc.authenticate(&ad).await.unwrap();
+            // test conn further?
+        });
+    }
+
+    #[test]
+    fn test_can_auto_auth_with_cookie() {
+        let c = run_testing_tor_instance(
+            &[
+                "--DisableNetwork", "1",
+                "--ControlPort", &TOR_TESTING_PORT.to_string(),
+                "--CookieAuthentication", "1",
+            ]);
+
+        block_on_with_env(async move {
+            let mut s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
+            let mut utc = UnauthenticatedConn::new(s);
+            let proto_info = utc.load_protocol_info().await.unwrap();
+            println!("{:#?}", proto_info);
+            let ad = proto_info.make_auth_data().unwrap().unwrap();
+            utc.authenticate(&ad).await.unwrap();
             // test conn further?
         });
     }

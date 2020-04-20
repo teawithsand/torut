@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 use std::collections::HashSet;
 use std::str::FromStr;
+use std::io::Read;
 
 /// TorAuthMethod describes method which tor accepts as authentication method
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -51,13 +52,56 @@ pub struct TorPreAuthInfo<'a> {
     pub cookie_file: Option<Cow<'a, str>>,
 }
 
-// TODO(teawithsand): some helper function to automatically pick auth for library end user
+impl<'a> TorPreAuthInfo<'a> {
+    /// make_auth_data is best-intent function which tries to create authentication data for given tor instance using data contained in 
+    /// TorPreAuthInfo. 
+    /// 
+    /// For most usages it's the one which should be used rather than constructing data manually.
+    /// Exception here is password auth.
+    /// 
+    /// # Reading files
+    /// If `Cookie` or `SafeCookie` auth is allowed this function may read cookie file(depending on availability of null auth).
+    /// It reads cookie from random path specified by `cookie_file`.
+    /// It reads exactly `COOKIE_LENGTH` bytes always.
+    /// 
+    /// # Returns
+    /// It returns `Ok(None)` when make_auth_data is not able to use any authentication method which does not require any additional programmer care.
+    /// Example of such method which requires care is HashedPassword. It can't be automated by design.
+    /// 
+    /// It returns `std::io::Error` when reading cookiefile fails.
+    pub fn make_auth_data(&self) -> Result<Option<TorAuthData<'static>>, std::io::Error> {
+        if self.auth_methods.contains(&TorAuthMethod::Null) {
+            Ok(Some(TorAuthData::Null))
+        } else if self.auth_methods.contains(&TorAuthMethod::SafeCookie) && self.cookie_file.is_some() {
+            let mut f = std::fs::File::open(self.cookie_file.as_ref().unwrap().as_ref())?;
+            let mut buffer = Vec::new();
+            buffer.resize(COOKIE_LENGTH, 0u8);
+            f.read_exact(&mut buffer[..])?;
+
+            Ok(Some(TorAuthData::Cookie(Cow::Owned(buffer))))
+        } else if self.auth_methods.contains(&TorAuthMethod::Cookie) && self.cookie_file.is_some() {
+            let mut f = std::fs::File::open(self.cookie_file.as_ref().unwrap().as_ref())?;
+            let mut buffer = Vec::new();
+            buffer.resize(COOKIE_LENGTH, 0u8);
+            f.read_exact(&mut buffer[..])?;
+
+            Ok(Some(TorAuthData::Cookie(Cow::Owned(buffer))))
+        } else {
+            Ok(None)
+        }
+    }
+}
+
+// TODO(teawithsand): test make_auth_data without tor
 
 /// TorAuthData contains all data required to authenticate single `UnauthenticatedConn`
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum TorAuthData<'a> {
-    /// null auth in fact does not require any data
+    /// null auth in fact does not require any data.
+    /// # Security note
+    /// Please note that in some cases this may cause secirity issue.
+    /// It should be NEVER used.
     Null,
 
     /// Password auth requires password
@@ -81,3 +125,5 @@ impl<'a> TorAuthData<'a> {
         }
     }
 }
+
+// testing is in unauthenticated conn rs
