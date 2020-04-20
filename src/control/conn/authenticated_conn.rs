@@ -282,7 +282,7 @@ impl<S, F, H> AuthenticatedConn<S, H>
     /// Result hash map is guaranteed to value for all options provided in request.
     /// Each one is interpreted as string without unquoting(if tor spec requires to do so for given value it has to be done manually)
     ///
-    /// If same key was provided twice or more times it's value will occur in result these amount of times.
+    /// If same key was provided two or more times it's value will occur in result these amount of times.
     /// Values are fetched directly from tor so they probably are same but take a look at torCP docs to be sure about that.
     ///
     /// # Error
@@ -326,7 +326,28 @@ impl<S, F, H> AuthenticatedConn<S, H>
         return Ok(res);
     }
 
-    /// get_info is just like `get_info_multiple` but accepts only one parameter and returns only one value
+    /// get_info_multiple_unquote works just like get_info_multiple but unquotes results
+    /// If uniqoting fails original value is left.
+    pub async fn get_info_multiple_unquote(&mut self, options: &mut impl Iterator<Item=&str>) -> Result<HashMap<String, Vec<String>>, ConnError> {
+        self.get_info_multiple(options).await.map(|mut res_map| {
+            for (_, values) in res_map.iter_mut() {
+                for val in values.iter_mut() {
+                    let (quote_end, res) = unquote_string(val);
+                    // TODO(teawithsand):
+                    // what if there are many unquoted strings?
+                    if quote_end.is_some() { // if unquotting occurred 
+                        if let Ok(unquoted_text) = res{ // and succeed
+                            *val = unquoted_text.into_owned();
+                        }
+                    }
+                }
+            }
+            res_map
+        })
+    }
+
+    /// get_info is just like `get_info_multiple` but accepts only one parameter and returns only one value.
+    /// Under the hood it uses `get_info_multiple`.
     pub async fn get_info(&mut self, option: &str) -> Result<String, ConnError> {
         let res = self.get_info_multiple(&mut std::iter::once(option)).await?;
         if res.len() != 1 {
@@ -339,6 +360,22 @@ impl<S, F, H> AuthenticatedConn<S, H>
         }
         Ok(v.into_iter().nth(0).unwrap())
     }
+
+
+    /// get_info_unquote is just like `get_info` but rather than using `self.get_info_multiple` under the hood id uses `self.get_info_multiple_unquote`
+    pub async fn get_info_unquote(&mut self, option: &str) -> Result<String, ConnError> {
+        let res = self.get_info_multiple_unquote(&mut std::iter::once(option)).await?;
+        if res.len() != 1 {
+            return Err(ConnError::InvalidFormat);
+        }
+
+        let v = res.into_iter().map(|(_k, v)| v).nth(0).unwrap();
+        if v.len() != 1 {
+            return Err(ConnError::InvalidFormat);
+        }
+        Ok(v.into_iter().nth(0).unwrap())
+    }
+
 
     /// drop_guards invokes `DROPGUARDS` which(according to torCP docs):
     ///
@@ -807,6 +844,7 @@ mod test_with_tor {
     use std::thread::sleep;
     use std::time::Duration;
     use std::net::{IpAddr, Ipv4Addr};
+    use std::str::FromStr;
 
     use tokio::fs::File;
     use tokio::net::{TcpStream};
@@ -1056,6 +1094,61 @@ mod test_with_tor {
             // delete onion service so it works no more
             // TOOD(teawithsand): implement get_onion_address for TorPublicKeyV2
             // ac.del_onion(&key.public().get_onion_address().get_address_without_dot_onion()).await.unwrap();
+        });
+    }
+
+    #[test]
+    fn test_can_issue_getinfo_unquote() {
+        let mut c = run_testing_tor_instance(
+            &[
+                "--DisableNetwork", "1",
+                "--ControlPort", &TOR_TESTING_PORT.to_string(),
+            ]);
+
+        block_on_with_env(async move {
+            let mut s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
+            let mut utc = UnauthenticatedConn::new(s);
+            let proto_info = utc.load_protocol_info().await.unwrap();
+
+            assert!(proto_info.auth_methods.contains(&TorAuthMethod::Null));
+            utc.authenticate(&TorAuthData::Null).await.unwrap();
+            let mut ac = utc.into_authenticated().await;
+            ac.set_async_event_handler(Some(|_| {
+                async move { Ok(()) }
+            }));
+
+            let controlport = ac.get_info_unquote("net/listeners/control").await.unwrap();
+            let addr = SocketAddr::from_str(&controlport).unwrap();
+            let is_loopback = match addr{
+                SocketAddr::V4(a) => a.ip().is_loopback(),
+                SocketAddr::V6(a) => a.ip().is_loopback(),
+            };
+            assert!(is_loopback, "Tor control protocol is not listening on loopback");
+        });
+    }
+
+    #[test]
+    fn test_can_issue_not_existing_getinfo() {
+        let mut c = run_testing_tor_instance(
+            &[
+                "--DisableNetwork", "1",
+                "--ControlPort", &TOR_TESTING_PORT.to_string(),
+            ]);
+
+        block_on_with_env(async move {
+            let mut s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
+            let mut utc = UnauthenticatedConn::new(s);
+            let proto_info = utc.load_protocol_info().await.unwrap();
+
+            assert!(proto_info.auth_methods.contains(&TorAuthMethod::Null));
+            utc.authenticate(&TorAuthData::Null).await.unwrap();
+            let mut ac = utc.into_authenticated().await;
+            ac.set_async_event_handler(Some(|_| {
+                async move { Ok(()) }
+            }));
+
+            ac.get_info_unquote("blah/blah/blah").await.unwrap_err();
+            ac.get_info("blah/blah/blah").await.unwrap_err();
         });
     }
 }

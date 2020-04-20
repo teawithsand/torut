@@ -27,9 +27,9 @@ async fn main() {
 
     ac.take_ownership().await.unwrap();
 
-    let socksport = ac.get_info("net/listeners/socks").await.unwrap();
+    let socksport = ac.get_info_unquote("net/listeners/socks").await.unwrap();
     println!("Tor is running now. It's socks port is listening(or not) on: {:?} but it's not connected to the network because DisableNetwork is set", socksport);
 
-    let controlport = ac.get_info("net/listeners/control").await.unwrap();
+    let controlport = ac.get_info_unquote("net/listeners/control").await.unwrap();
     println!("Tor is running now. It's control port listening on: {:?}", controlport);
 }
