@@ -65,7 +65,7 @@ impl TorPublicKeyV3 {
     /// * `InternalError::PointDecompressionError`
     #[inline]
     pub fn from_bytes(bytes: &[u8; TORV3_PUBLIC_KEY_LENGTH]) -> Result<TorPublicKeyV3, SignatureError> {
-        PublicKey::from_bytes(bytes).map(|pk| TorPublicKeyV3(bytes.clone()))
+        PublicKey::from_bytes(bytes).map(|_pk| TorPublicKeyV3(bytes.clone()))
     }
 }
 
