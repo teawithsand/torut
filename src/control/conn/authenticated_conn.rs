@@ -552,13 +552,13 @@ impl<S, F, H> AuthenticatedConn<S, H>
     }
 
     #[cfg(any(feature = "v3"))]
-    /// add_onion sends `ADD_ONION` command which spins up new onion service.
-    /// Using given tor secret key and some configuration values.
+    /// add_onion sends `ADD_ONION` command which spins up new onion service
+    /// using given tor secret key and some configuration values.
     ///
     /// For onion service v2 take a look at `add_onion_v2`
     ///
     /// # Parameters
-    /// Take a look at `add_onion_v2`. This function accepts same parameter.
+    /// Take a look at `add_onion_v2`. This function accepts same parameters.
     ///
     /// It does not support tor-side generated keys yet.
     pub async fn add_onion_v3(
@@ -580,6 +580,7 @@ impl<S, F, H> AuthenticatedConn<S, H>
             listeners,
         )?;
         res.push_str("\r\n");
+        eprintln!("{:?}", res);
         self.conn.write_data(res.as_bytes()).await?;
 
         // we do not really care about contents of response
@@ -794,13 +795,15 @@ mod test {
     }
 }
 
+// TODO(teawithsand): cleanup testing initialization
 #[cfg(all(test, testtor))]
 mod test_with_tor {
     use std::thread::sleep;
     use std::time::Duration;
+    use std::net::{IpAddr, Ipv4Addr};
 
     use tokio::fs::File;
-    use tokio::net::TcpStream;
+    use tokio::net::{TcpStream};
     use tokio::prelude::*;
 
     use crate::control::{COOKIE_LENGTH, TorAuthData, TorAuthMethod, UnauthenticatedConn};
@@ -979,7 +982,33 @@ mod test_with_tor {
         });
     }
 
-    // TODO(teawithsand): tests for onion services
+    #[test]
+    fn test_can_create_onion_service_v3() {
+        let mut c = run_testing_tor_instance(
+            &[
+                "--DisableNetwork", "1",
+                "--ControlPort", &TOR_TESTING_PORT.to_string(),
+            ]);
+
+        block_on_with_env(async move {
+            let mut s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
+            let mut utc = UnauthenticatedConn::new(s);
+            let proto_info = utc.load_protocol_info().await.unwrap();
+
+            assert!(proto_info.auth_methods.contains(&TorAuthMethod::Null));
+            utc.authenticate(&TorAuthData::Null).await.unwrap();
+            let mut ac = utc.into_authenticated().await;
+            ac.set_async_event_handler(Some(|_| {
+                async move { Ok(()) }
+            }));
+
+            let key = crate::onion::TorSecretKeyV3::generate();
+
+            ac.add_onion_v3(&key, false, false, false, None, &mut [
+                (15787, SocketAddr::new(IpAddr::from(Ipv4Addr::new(127,0,0,1)), 15787)),
+            ].iter()).await.unwrap();
+        });
+    }
 }
 
 #[cfg(fuzzing)]

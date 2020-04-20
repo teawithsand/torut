@@ -50,7 +50,7 @@ pub(crate) fn run_testing_tor_instance<A, T>(args: A) -> AutoKillChild
     c
 }
 
-/// AutoKillChild is kind of bag which contains [`Child`].
+/// AutoKillChild is kind of bag which contains `Child`.
 /// It makes it automatically commit suicide after it gets dropped.
 #[derive(From)]
 pub struct AutoKillChild {
@@ -88,7 +88,7 @@ mod test {
 
     #[test]
     fn test_can_run_very_basic_tor_instance() {
-        let mut c = run_testing_tor_instance(&["--DisableNetwork", "1", "--ControlPort", &TOR_TESTING_PORT.to_string()]);
+        let c = run_testing_tor_instance(&["--DisableNetwork", "1", "--ControlPort", &TOR_TESTING_PORT.to_string()]);
         // c.kill().unwrap();
     }
 }

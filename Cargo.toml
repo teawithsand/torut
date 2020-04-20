@@ -36,6 +36,8 @@ hmac = { version = "0.7", optional = true } # for authentication with tor contro
 
 
 # ed25519-dalek = { git = "https://github.com/dalek-cryptography/ed25519-dalek", branch="master", optional = true }
+# Migrate to https://crates.io/crates/ed25519?
+
 ed25519-dalek = { version = "1.0.0-pre.3", optional = true }
 rand = { version = "0.7", optional = true }
 base32 = { version = "0.4", optional = true }

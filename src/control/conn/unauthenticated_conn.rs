@@ -322,7 +322,7 @@ impl<S> UnauthenticatedConn<S>
         Ok(())
     }
 
-    /// into_authenticated creates [`AuthenticatedConn`] from this one without checking if it makes any sense.
+    /// into_authenticated creates `AuthenticatedConn` from this one without checking if it makes any sense.
     /// It should be called after successful call to `authenticate`.
     pub async fn into_authenticated<H>(self) -> AuthenticatedConn<S, H> {
         AuthenticatedConn::from(self.conn)
@@ -425,8 +425,6 @@ mod test_tor {
     use crate::utils::{AutoKillChild, block_on_with_env, run_testing_tor_instance, TOR_TESTING_PORT};
 
     use super::*;
-
-// TODO(teawithsand): safecookie authentication
 
     #[test]
     fn test_can_null_authenticate() {
