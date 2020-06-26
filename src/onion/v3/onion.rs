@@ -13,7 +13,7 @@ use crate::utils::BASE32_ALPHA;
 /// 32 public key bytes + 2 bytes of checksum = 34
 /// (in onion address v3 there is one more byte - version eq to 3)
 /// Checksum is hardcoded in order not to recompute it.
-/// 
+///
 /// This variable denotates byte length of OnionAddressV3.
 pub const TORV3_ONION_ADDRESS_LENGTH_BYTES: usize = 34;
 
@@ -110,7 +110,7 @@ impl FromStr for OnionAddressV3 {
     type Err = OnionAddressParseError;
 
     /// from_str parses OnionAddressV3 from string.
-    /// 
+    ///
     /// Please note that it accepts address *without* .onion only.
     fn from_str(raw_onion_address: &str) -> Result<Self, Self::Err> {
         if raw_onion_address.as_bytes().len() != 56 {
