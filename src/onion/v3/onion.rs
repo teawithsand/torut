@@ -77,7 +77,7 @@ impl OnionAddressV3 {
     }
 
     #[inline]
-    fn get_raw_bytes(&self) -> [u8; 35] {
+    pub fn get_raw_bytes(&self) -> [u8; 35] {
         let mut buf = [0u8; 35];
         buf[..34].clone_from_slice(&self.0);
         buf[34] = 3;
