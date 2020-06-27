@@ -21,6 +21,10 @@ pub const TORV2_ONION_ADDRESS_LENGTH_BYTES: usize = 10;
 ///
 /// # Note
 /// Onion address V2 does not contain checksum so any combination of random ten bytes satisfies requirements.
+/// Since it may be valid SHA1 bytes.
+/// 
+/// # Docs
+/// https://gitweb.torproject.org/torspec.git/tree/rend-spec-v2.txt#n530
 #[derive(Clone)]
 pub struct OnionAddressV2([u8; TORV2_ONION_ADDRESS_LENGTH_BYTES]);
 
@@ -70,7 +74,7 @@ impl OnionAddressV2 {
     }
 
     #[inline]
-    fn get_raw_bytes(&self) -> [u8; 10] {
+    pub fn get_raw_bytes(&self) -> [u8; 10] {
         self.0
     }
 
