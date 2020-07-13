@@ -335,7 +335,7 @@ impl<S, F, H> AuthenticatedConn<S, H>
                     let (quote_end, res) = unquote_string(val);
                     // TODO(teawithsand):
                     // what if there are many unquoted strings?
-                    if quote_end.is_some() { // if unquotting occurred 
+                    if quote_end.is_some() { // if unquotting occurred
                         if let Ok(unquoted_text) = res{ // and succeed
                             *val = unquoted_text.into_owned();
                         }
@@ -427,7 +427,7 @@ impl<S, F, H> AuthenticatedConn<S, H>
     }
 
     // TODO(teawithsand): make async resolve with custom future with tokio which parses async event
-    //  and then notifies caller using waker 
+    //  and then notifies caller using waker
     //  same for reverse_resolve
 
     /// resolve performs dns lookup over tor. It invokes `RESOLVE` command which(according to torCP docs):
@@ -510,7 +510,7 @@ impl<S, F, H> AuthenticatedConn<S, H>
             }
             if !flags.is_empty() {
                 res.push_str("Flags=");
-                res.push_str(&flags.join(" "));
+                res.push_str(&flags.join(","));
                 res.push(' ');
             }
         }
