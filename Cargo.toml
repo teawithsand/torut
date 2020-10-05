@@ -14,7 +14,7 @@ keywords = ["tor", "controller", "tokio", "onion"]
 default = ["serialize", "v2", "v3", "control"]
 serialize = ["serde", "serde_derive", "base32", "base64"]
 control = ["tokio", "rand", "hex", "sha2", "hmac"]
-v2 = ["openssl", "base32", "base32", "base64", "sha1"]
+v2 = ["rsa", "rand", "base32", "base32", "base64", "sha1"]
 v3 = ["rand", "ed25519-dalek", "base32", "base64", "sha3"]
 
 [badges]
@@ -27,8 +27,7 @@ serde_derive = { version = "1.0", optional = true }
 
 derive_more = "0.15.0"
 
-# TODO(teawithsand): replace this with RSA crate, which is rust one and should provide better portability
-openssl = { version="0.10", optional = true }
+rsa = { version = "0.3", optional = true }
 
 sha3 = { version = "0.8", optional = true } # for onion service v3 signature
 sha2 = { version = "0.8", optional = true } # for ed25519-dalek key
@@ -38,7 +37,7 @@ hmac = { version = "0.7", optional = true } # for authentication with tor contro
 # ed25519-dalek = { git = "https://github.com/dalek-cryptography/ed25519-dalek", branch="master", optional = true }
 # Migrate to https://crates.io/crates/ed25519?
 
-ed25519-dalek = { version = "1.0.0-pre.3", optional = true }
+ed25519-dalek = { version = "1.0", optional = true }
 rand = { version = "0.7", optional = true }
 base32 = { version = "0.4", optional = true }
 base64 = { version = "0.10", optional = true }

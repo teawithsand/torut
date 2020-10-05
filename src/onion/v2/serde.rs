@@ -1,4 +1,4 @@
-use openssl::pkey::{Private, Public};
+use rsa::{RSAPrivateKey, RSAPublicKey};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::onion::v2::key::{TorPublicKeyV2, TorSecretKeyV2};
@@ -32,7 +32,8 @@ impl<'de> Deserialize<'de> for TorSecretKeyV2 {
         D: Deserializer<'de> {
         // String deserialization note: take a look at deserialization of `TorPublicKeyV2`
         let text = <String>::deserialize(deserializer)?;
-        let raw = <openssl::rsa::Rsa<Private>>::private_key_from_pem(text.as_bytes())
+        let raw = RSAPrivateKey::from_pkcs1(text.as_bytes())
+            .or_else(|_| RSAPrivateKey::from_pkcs8(text.as_bytes()))
             .map_err(serde::de::Error::custom)?;
         if !raw.check_key().map_err(serde::de::Error::custom)? {
             return Err(serde::de::Error::custom("RSA key invalid"));
@@ -51,7 +52,7 @@ impl<'de> Deserialize<'de> for TorPublicKeyV2 {
         // Wow I didn't expected that to happen! Serde has surprised me.
 
         let text = <String>::deserialize(deserializer)?;
-        let raw = <openssl::rsa::Rsa<Public>>::public_key_from_pem_pkcs1(text.as_bytes())
+        let raw = RSAPublicKey::from_pkcs1(text.as_bytes())
             .map_err(serde::de::Error::custom)?;
         // Note on checking key here:
         // Should keys with really small e(like 3) be allowed?
