@@ -25,7 +25,7 @@ pub const TORV2_ONION_ADDRESS_LENGTH_BYTES: usize = 10;
 /// 
 /// # Docs
 /// https://gitweb.torproject.org/torspec.git/tree/rend-spec-v2.txt#n530
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct OnionAddressV2([u8; TORV2_ONION_ADDRESS_LENGTH_BYTES]);
 
 // TODO(teaiwthsand): implement it
