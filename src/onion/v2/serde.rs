@@ -35,9 +35,7 @@ impl<'de> Deserialize<'de> for TorSecretKeyV2 {
         let raw = RSAPrivateKey::from_pkcs1(text.as_bytes())
             .or_else(|_| RSAPrivateKey::from_pkcs8(text.as_bytes()))
             .map_err(serde::de::Error::custom)?;
-        if !raw.check_key().map_err(serde::de::Error::custom)? {
-            return Err(serde::de::Error::custom("RSA key invalid"));
-        }
+        raw.validate().map_err(serde::de::Error::custom)?;
         Ok(TorSecretKeyV2(raw))
     }
 }
