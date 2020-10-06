@@ -16,6 +16,7 @@ serialize = ["serde", "serde_derive", "base32", "base64"]
 control = ["tokio", "rand", "hex", "sha2", "hmac"]
 v2 = ["openssl", "base32", "base32", "base64", "sha1"]
 v3 = ["rand", "ed25519-dalek", "base32", "base64", "sha3"]
+vendored_openssl = ["openssl/vendored"] # Thanks to this syntax we can allow user to choose whatever or not vendored openssl should be used
 
 [badges]
 travis-ci = { repository = "teawithsand/torut", branch = "master" }

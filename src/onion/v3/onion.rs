@@ -1,5 +1,4 @@
 //! onion module contains utils for working with Tor's onion services
-//! Note: only version 3 onion services are used and supported so.
 
 use std::str::FromStr;
 
@@ -12,14 +11,14 @@ use crate::utils::BASE32_ALPHA;
 
 /// 32 public key bytes + 2 bytes of checksum = 34
 /// (in onion address v3 there is one more byte - version eq to 3)
-/// Checksum is hardcoded in order not to recompute it.
+/// Checksum is embbeded in order not to recompute it.
 ///
 /// This variable denotates byte length of OnionAddressV3.
 pub const TORV3_ONION_ADDRESS_LENGTH_BYTES: usize = 34;
 
 /// OnionAddressV3 contains public part of Tor's onion service address version 3.,
 /// It can't contain invalid onion address
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct OnionAddressV3([u8; TORV3_ONION_ADDRESS_LENGTH_BYTES]);
 
 impl PartialEq for OnionAddressV3 {

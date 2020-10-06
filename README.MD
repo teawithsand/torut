@@ -48,6 +48,10 @@ Right now this crate uses `#![forbid(unsafe_code)]`
 annotation which means that it contains 0 unsafe code blocks so it should not be a concern
 despite the fact that usually(almost always) tor process is considered trusted.
 
+## Usage considerations
+In case there is no OpenSSL installed on your target machine you can embbed it into rust binary.
+In order to do that use `vendored_openssl` feature.
+
 # Testing 
 Tests in torut are split into two parts:
 these which do use tor and these which do not use tor.
