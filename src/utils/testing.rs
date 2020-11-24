@@ -18,7 +18,7 @@ pub(crate) fn run_testing_tor_instance<A, T>(args: A) -> AutoKillChild
         T: AsRef<str>
 {
     let tor_path = std::env::var(ENV_VAR_NAME).unwrap();
-    let mut c = AutoKillChild::from(run_tor(tor_path, args).unwrap());
+    let c = AutoKillChild::from(run_tor(tor_path, args).unwrap());
     c
 }
 

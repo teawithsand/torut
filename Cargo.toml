@@ -36,21 +36,18 @@ sha2 = { version = "0.8", optional = true } # for ed25519-dalek key
 sha1 = { version = "0.6", optional = true } # for onion service v2 signature
 hmac = { version = "0.7", optional = true } # for authentication with tor controller
 
-# ed25519-dalek = { git = "https://github.com/dalek-cryptography/ed25519-dalek", branch="master", optional = true }
-# Migrate to https://crates.io/crates/ed25519?
-
-ed25519-dalek = { version = "1.0.0-pre.3", optional = true }
+ed25519-dalek = { version = "1.0", optional = true }
 rand = { version = "0.7", optional = true }
 base32 = { version = "0.4", optional = true }
 base64 = { version = "0.10", optional = true }
 hex = { version = "0.4", optional = true }
 
-tokio = { version = "0.2", features = ["io-util"], optional = true }
+tokio = { version = "0.3", features = ["io-util"], optional = true }
 
 # for fuzzing right now
 # TODO(reawithsand): fix it somehow
-# tokio = { version = "0.2", optional = true, features = ["full"] }
+# tokio = { version = "0.3", optional = true, features = ["full"] }
 
 [dev-dependencies]
 serde_json = "1.0"
-tokio = { version = "0.2", features = ["full"] }
+tokio = { version = "0.3", features = ["full"] }

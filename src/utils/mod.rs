@@ -24,9 +24,7 @@ pub use testing::*;
 pub(crate) fn block_on<F, O>(f: F) -> O
     where F: Future<Output=O>
 {
-    use tokio::*;
-    let mut rt = runtime::Builder::new()
-        .basic_scheduler() // single threaded one
+    let rt = tokio::runtime::Builder::new_current_thread()
         .build()
         .unwrap();
     rt.block_on(f)
@@ -38,10 +36,8 @@ pub(crate) fn block_on<F, O>(f: F) -> O
 pub(crate) fn block_on_with_env<F, O>(f: F) -> O
     where F: Future<Output=O>
 {
-    use tokio::*;
-    let mut rt = runtime::Builder::new()
+    let rt = tokio::runtime::Builder::new_multi_thread()
         .enable_io()
-        .basic_scheduler() // single threaded one
         .build()
         .unwrap();
     rt.block_on(f)

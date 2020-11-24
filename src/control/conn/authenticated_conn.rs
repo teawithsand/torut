@@ -846,9 +846,7 @@ mod test_with_tor {
     use std::net::{IpAddr, Ipv4Addr};
     use std::str::FromStr;
 
-    use tokio::fs::File;
     use tokio::net::{TcpStream};
-    use tokio::prelude::*;
 
     use crate::control::{COOKIE_LENGTH, TorAuthData, TorAuthMethod, UnauthenticatedConn};
     use crate::utils::{block_on_with_env, run_testing_tor_instance, TOR_TESTING_PORT};
@@ -857,14 +855,14 @@ mod test_with_tor {
 
     #[test]
     fn test_can_get_configuration_value_set_it_and_get_it_again() {
-        let c = run_testing_tor_instance(
+        let _c = run_testing_tor_instance(
             &[
                 "--DisableNetwork", "1",
                 "--ControlPort", &TOR_TESTING_PORT.to_string(),
             ]);
 
         block_on_with_env(async move {
-            let mut s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
+            let s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
             let mut utc = UnauthenticatedConn::new(s);
             let proto_info = utc.load_protocol_info().await.unwrap();
 
@@ -917,14 +915,14 @@ mod test_with_tor {
 
     #[test]
     fn test_can_get_information_from_tor() {
-        let c = run_testing_tor_instance(
+        let _c = run_testing_tor_instance(
             &[
                 "--DisableNetwork", "1",
                 "--ControlPort", &TOR_TESTING_PORT.to_string(),
             ]);
 
         block_on_with_env(async move {
-            let mut s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
+            let s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
             let mut utc = UnauthenticatedConn::new(s);
             let proto_info = utc.load_protocol_info().await.unwrap();
 
@@ -948,14 +946,14 @@ mod test_with_tor {
 
     #[test]
     fn test_can_listen_to_events_on_tor() {
-        let c = run_testing_tor_instance(
+        let _c = run_testing_tor_instance(
             &[
                 "--DisableNetwork", "1",
                 "--ControlPort", &TOR_TESTING_PORT.to_string(),
             ]);
 
         block_on_with_env(async move {
-            let mut s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
+            let s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
             let mut utc = UnauthenticatedConn::new(s);
             let proto_info = utc.load_protocol_info().await.unwrap();
 
@@ -981,7 +979,7 @@ mod test_with_tor {
             ]);
 
         block_on_with_env(async move {
-            let mut s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
+            let s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
             let mut utc = UnauthenticatedConn::new(s);
             let proto_info = utc.load_protocol_info().await.unwrap();
 
@@ -1007,7 +1005,7 @@ mod test_with_tor {
             ]);
 
         block_on_with_env(async move {
-            let mut s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
+            let s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
             let mut utc = UnauthenticatedConn::new(s);
             let proto_info = utc.load_protocol_info().await.unwrap();
 
@@ -1028,14 +1026,14 @@ mod test_with_tor {
 
     #[test]
     fn test_can_create_onion_service_v3() {
-        let mut c = run_testing_tor_instance(
+        let _c = run_testing_tor_instance(
             &[
                 "--DisableNetwork", "1",
                 "--ControlPort", &TOR_TESTING_PORT.to_string(),
             ]);
 
         block_on_with_env(async move {
-            let mut s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
+            let s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
             let mut utc = UnauthenticatedConn::new(s);
             let proto_info = utc.load_protocol_info().await.unwrap();
 
@@ -1063,14 +1061,14 @@ mod test_with_tor {
 
     #[test]
     fn test_can_create_onion_service_v3_with_flags() {
-        let mut c = run_testing_tor_instance(
+        let _c = run_testing_tor_instance(
             &[
                 "--DisableNetwork", "1",
                 "--ControlPort", &TOR_TESTING_PORT.to_string(),
             ]);
 
         block_on_with_env(async move {
-            let mut s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
+            let s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
             let mut utc = UnauthenticatedConn::new(s);
             let proto_info = utc.load_protocol_info().await.unwrap();
 
@@ -1098,14 +1096,14 @@ mod test_with_tor {
 
     #[test]
     fn test_can_create_onion_service_v2() {
-        let mut c = run_testing_tor_instance(
+        let _c = run_testing_tor_instance(
             &[
                 "--DisableNetwork", "1",
                 "--ControlPort", &TOR_TESTING_PORT.to_string(),
             ]);
 
         block_on_with_env(async move {
-            let mut s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
+            let s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
             let mut utc = UnauthenticatedConn::new(s);
             let proto_info = utc.load_protocol_info().await.unwrap();
 
@@ -1134,14 +1132,14 @@ mod test_with_tor {
 
     #[test]
     fn test_can_issue_getinfo_unquote() {
-        let mut c = run_testing_tor_instance(
+        let _c = run_testing_tor_instance(
             &[
                 "--DisableNetwork", "1",
                 "--ControlPort", &TOR_TESTING_PORT.to_string(),
             ]);
 
         block_on_with_env(async move {
-            let mut s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
+            let s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
             let mut utc = UnauthenticatedConn::new(s);
             let proto_info = utc.load_protocol_info().await.unwrap();
 
@@ -1164,14 +1162,14 @@ mod test_with_tor {
 
     #[test]
     fn test_can_issue_not_existing_getinfo() {
-        let mut c = run_testing_tor_instance(
+        let _c = run_testing_tor_instance(
             &[
                 "--DisableNetwork", "1",
                 "--ControlPort", &TOR_TESTING_PORT.to_string(),
             ]);
 
         block_on_with_env(async move {
-            let mut s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
+            let s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
             let mut utc = UnauthenticatedConn::new(s);
             let proto_info = utc.load_protocol_info().await.unwrap();
 
