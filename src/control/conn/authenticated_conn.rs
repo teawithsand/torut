@@ -2,8 +2,7 @@ use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::future::Future;
 use std::net::{Ipv4Addr, SocketAddr};
-
-use tokio::prelude::*;
+use tokio::io::{AsyncRead, AsyncWrite};
 
 use crate::control::conn::{AuthenticatedConnError, Conn, ConnError};
 use crate::control::primitives::AsyncEvent;
