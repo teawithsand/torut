@@ -22,7 +22,7 @@ pub fn parse_key_value() {}
 /// # Error
 /// It returns an error:
 /// - if there is no equal sign
-/// - if data before equal sign is not `A-Za-z0-9_ -/` ascii chars(notice space character)
+/// - if data before equal sign is not `A-Za-z0-9_ -/$` ascii chars(notice space character)
 /// - if value as quoted string enclosing quote is not last character of text
 ///
 /// It *does not* return an error when key value is empty string so format is: `="asdf"`
@@ -44,7 +44,7 @@ pub fn parse_single_key_value(text: &str) -> Result<(&str, &str), ()>
         if c == '=' {
             break;
         }
-        if c != ' ' && c != '-' && c != '_' && c != '/' && !c.is_ascii_alphanumeric() {
+        if c != ' ' && c != '-' && c != '_' && c != '/' && c != '$' && !c.is_ascii_alphanumeric() {
             return Err(());
         }
         key_offset += c.len_utf8();
