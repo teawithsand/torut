@@ -19,6 +19,7 @@ pub mod onion;
 #[cfg(feature = "control")]
 pub mod control;
 
+#[allow(dead_code)] // prevents emitting warnings when control feature is skipped
 pub mod utils;
 
 #[cfg(fuzzing)]

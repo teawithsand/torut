@@ -475,6 +475,7 @@ impl<S, F, H> AuthenticatedConn<S, H>
     }
 
     // note: there is no \r\n at the end
+    #[allow(dead_code)] // prevents emitting warnings when v2 and v3 features is skipped
     fn setup_onion_service_call<'a>(
         is_rsa: bool,
         key_blob: &str,

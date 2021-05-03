@@ -106,7 +106,9 @@ pub(crate) fn is_valid_option(config_option: &str) -> bool {
     true
 }
 
+
 /// BASE32_ALPHA to use when encoding base32 stuff
+#[allow(dead_code)] // not used when onion service v2 enabled
 pub(crate) const BASE32_ALPHA: base32::Alphabet = base32::Alphabet::RFC4648 {
     padding: false,
 };
