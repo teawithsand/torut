@@ -55,6 +55,10 @@ mod test {
                 Some(("KEY", "VALUE"))
             ),
             (
+                "$KE$Y=VALUE",
+                Some(("$KE$Y", "VALUE"))
+            ),
+            (
                 "KEY=\"VALUE\"",
                 Some(("KEY", "\"VALUE\""))
             ),
