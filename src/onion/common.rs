@@ -8,14 +8,18 @@ use crate::onion::{OnionAddressV3, TorPublicKeyV3, TorSecretKeyV3};
 #[derive(Debug, Clone, PartialEq, Eq, From, TryInto)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum TorSecretKey {
+    #[cfg(feature = "v2")]
     V2(TorSecretKeyV2),
+    #[cfg(feature = "v3")]
     V3(TorSecretKeyV3),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, From, TryInto)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum OnionAddress {
+    #[cfg(feature = "v2")]
     V2(OnionAddressV2),
+    #[cfg(feature = "v3")]
     V3(OnionAddressV3),
 }
 
