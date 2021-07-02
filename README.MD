@@ -11,42 +11,9 @@ It implements onion service key and address generation and serialization on it's
 Right now logic is quite tightly coupled with tokio so there is no way to
 remove tokio from dependencies and make all functions synchronous.
 
-# Security considerations
-Right now comparing keys/onion services *IS NOT CONSTANT TIME* which may lead to leaking some values.
-All constant time compared types are explicitly marked at least in their documentation.
-
-Also please note that this library is relatively new and may contain bugs(and dynamically changing APIs) thus I personally think
-that it should not be used for any security critical project yet.
-
-This crate is of course as safe as tor instance that you are using so keep your software up to date.
-
-Right now it uses `1.0.0-pre.3` version of `ed25519-dalek` library for v3 onion services
-The library may not be well-established yet until 1.0 release will be available. 
-
-## Attack scenario
-So one may think that torCP client is not an attack surface but it may lead to deanonymization of client under
-some circumstances(or even RCE in case of bug in tor or "feature" of tor control protocol intended for trusted input
-but it's much less probable. Tor has really good security history compared to other C projects).
-Imagine that `RESOLVE` command is implemented badly and input is untrusted(for example we resolve domain from some email software)
-
-Then attacker can put domain like: 
-`example.com\r\nDROPGUARDS`
-so command looks like 
-`RESOLVE example.com\r\nDROPGUARDS\r\n`
-
-which would cause `DROPGUARDS` command to be issued on tor instance.
-Knowing timing of when this happened eavesdropper may try to deanonymize client. 
-
-## Less important security considerations
-Right now it also does not implement server authenticity check when one is connecting to tor control protocol
-but it's hardly an issue. 
-Once implemented it may prevent us from using cookie in wrong tor process instance in best case.
-Right now we do not reveal cookie event if connected to wrong tor process anyway due to how HMAC works.
-
-#### Unsafe code
-Right now this crate uses `#![forbid(unsafe_code)]` 
-annotation which means that it contains 0 unsafe code blocks so it should not be a concern
-despite the fact that usually(almost always) tor process is considered trusted.
+## Status of onion service V2
+For now, code handling them is still in this library, but it will be removed soon.
+See [This page](https://blog.torproject.org/v2-deprecation-timeline)
 
 ## Usage considerations
 In case there is no OpenSSL installed on your target machine you can embbed it into rust binary.
