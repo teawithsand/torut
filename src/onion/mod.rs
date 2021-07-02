@@ -15,6 +15,10 @@ pub use v2::*;
 pub use v3::*;
 
 #[cfg(feature = "v2")]
+#[deprecated(
+    since = "0.1.10",
+    note = "V2 onion services are deprecated by tor and soon will stop working; It will be removed in next release"
+)]
 mod v2;
 
 #[cfg(feature = "v3")]

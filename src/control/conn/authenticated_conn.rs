@@ -546,6 +546,10 @@ impl<S, F, H> AuthenticatedConn<S, H>
         Ok(res)
     }
 
+    #[deprecated(
+        since = "0.1.10",
+        note = "V2 onion services are deprecated by tor and soon will stop working; It will be removed in next release"
+    )]
     #[cfg(any(feature = "v2"))]
     /// add_onion sends `ADD_ONION` command which spins up new onion service.
     /// Using given tor secret key and some configuration values.
