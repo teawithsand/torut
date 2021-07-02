@@ -1,9 +1,15 @@
+use std::convert::TryFrom;
+use std::error::Error;
+use std::fmt::{self, Display, Formatter};
 use std::io;
 use std::num::ParseIntError;
+use std::option::Option::None;
 use std::str::{FromStr, Utf8Error};
 use std::string::FromUtf8Error;
-use tokio::io::{AsyncRead, AsyncWrite, AsyncReadExt, AsyncWriteExt};
 
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+
+use crate::control::TorErrorKind;
 
 /// UnauthenticatedConnError describes subset of `ConnError`s returned by `UnauthenticatedConn`
 #[derive(Debug, From)]
@@ -19,6 +25,16 @@ pub enum UnauthenticatedConnError {
     ServerHashMismatch,
 }
 
+impl Display for UnauthenticatedConnError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InfoFetchedTwice => write!(f, "Authentication info fetched twice"),
+            Self::ServerHashMismatch => write!(f, "Tor cookie hashes do not match"),
+        }
+    }
+}
+
+impl Error for UnauthenticatedConnError {}
 
 /// AuthenticatedConnError describes subset of `ConnError`s returned by `AuthenticatedConn`
 #[derive(Debug, From)]
@@ -41,6 +57,16 @@ pub enum AuthenticatedConnError {
     InvalidEventName,
 }
 
+impl Display for AuthenticatedConnError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        // TODO(teawithsand): proper explanation for these errors
+        //  despite the fact that they are low level it's hard to write user facing message for them
+        write!(f, "{:?} (Read torut's docs)", self)
+    }
+}
+
+impl Error for AuthenticatedConnError {}
+
 /// ConnError is able to wrap any error that a connection may return
 #[derive(Debug, From)]
 pub enum ConnError {
@@ -53,6 +79,7 @@ pub enum ConnError {
     AuthenticatedConnError(AuthenticatedConnError),
 
     // TODO(teawithsand): migrate this error to more meaningful one - with explanation or unknown code otherwise
+    //  typed error codes are already implemented; change this before next minor release
     /// Invalid(or unexpected) response code was returned from tor controller.
     /// Usually this indicates some error on tor's side
     InvalidResponseCode(u16),
@@ -65,6 +92,43 @@ pub enum ConnError {
     TooManyBytesRead,
 }
 
+impl Display for ConnError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let src = self.source();
+        if let Some(src) = src {
+            write!(f, "ConnError: {}", src)
+        } else {
+            match self {
+                Self::InvalidResponseCode(code) => {
+                    let typed = TorErrorKind::try_from(*code);
+                    if let Ok(typed) = typed {
+                        write!(f, "Tor returned error response code: {} - {:?}", code, typed)
+                    } else {
+                        write!(f, "Tor returned error response code: {}", code)
+                    }
+                }
+                Self::InvalidFormat | Self::InvalidCharacterFound | Self::NonAsciiByteFound | Self::ResponseCodeMismatch => write!(f, "Invalid response got from tor"),
+                Self::TooManyBytesRead => write!(f, "Tor response was too big to process"),
+                _ => write!(f, "Unknown ConnError"),
+            }
+        }
+    }
+}
+
+impl Error for ConnError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::IOError(err) => Some(err),
+            Self::Utf8Error(err) => Some(err),
+            Self::FromUtf8Error(err) => Some(err),
+            Self::ParseIntError(err) => Some(err),
+            Self::UnauthenticatedConnError(err) => Some(err),
+            Self::AuthenticatedConnError(err) => Some(err),
+            _ => None
+        }
+    }
+}
+
 /// Conn wraps any `AsyncRead + AsyncWrite` stream and implements parsing responses from tor and sending data to it.
 ///
 /// It's stateless component. It does not contain any information about connection like authentication state.
@@ -73,7 +137,7 @@ pub enum ConnError {
 /// This is fairly low-level connection which does only basic parsing.
 /// Unless you need it you should use higher level apis.
 pub struct Conn<S> {
-    stream: S
+    stream: S,
 }
 
 impl<S> Conn<S> {

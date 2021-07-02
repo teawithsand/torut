@@ -1,5 +1,8 @@
 //! onion module contains utils for working with Tor's onion services
 
+use std::error::Error;
+use std::fmt::{Display, Formatter};
+use std::fmt;
 use std::str::FromStr;
 
 #[cfg(feature = "serialize")]
@@ -91,6 +94,9 @@ impl OnionAddressV3 {
     }
 }
 
+// soon it will be the only onion address to parse
+// so let's leave name not fixed
+// it should be OnionAddressV3ParseError
 #[derive(Debug)]
 pub enum OnionAddressParseError {
     InvalidLength,
@@ -99,11 +105,13 @@ pub enum OnionAddressParseError {
     InvalidVersion,
 }
 
-impl std::fmt::Display for OnionAddressParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        write!(f, "OnionAddressParseError occurred")
+impl Display for OnionAddressParseError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "Filed to parse OnionAddressV3")
     }
 }
+
+impl Error for OnionAddressParseError {}
 
 impl FromStr for OnionAddressV3 {
     type Err = OnionAddressParseError;

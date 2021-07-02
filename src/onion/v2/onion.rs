@@ -1,11 +1,15 @@
 //! onion module contains utils for working with Tor's onion services
 
+use std::error::Error;
+use std::fmt::{Display, Formatter};
+use std::fmt;
 use std::str::FromStr;
 
 #[cfg(feature = "serialize")]
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::utils::BASE32_ALPHA;
+
 // use crate::onion::TorPublicKeyV2;
 
 pub const TORV2_ONION_ADDRESS_LENGTH_BYTES: usize = 10;
@@ -21,13 +25,12 @@ pub const TORV2_ONION_ADDRESS_LENGTH_BYTES: usize = 10;
 /// # Note
 /// Onion address V2 does not contain checksum so any combination of random ten bytes satisfies requirements.
 /// Since it may be valid SHA1 bytes.
-/// 
+///
 /// # Docs
 /// https://gitweb.torproject.org/torspec.git/tree/rend-spec-v2.txt#n530
 #[derive(Clone, Copy)]
 pub struct OnionAddressV2([u8; TORV2_ONION_ADDRESS_LENGTH_BYTES]);
 
-// TODO(teaiwthsand): implement it
 // looks like Shallot does this
 // https://github.com/katmagic/Shallot/blob/master/src/thread.c
 /*
@@ -96,11 +99,13 @@ pub enum OnionAddressV2ParseError {
     InvalidVersion,
 }
 
-impl std::fmt::Display for OnionAddressV2ParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        write!(f, "OnionAddressParseError occurred")
+impl Display for OnionAddressV2ParseError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "Filed to parse OnionAddressV2")
     }
 }
+
+impl Error for OnionAddressV2ParseError {}
 
 
 impl FromStr for OnionAddressV2 {
