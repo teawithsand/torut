@@ -296,7 +296,7 @@ impl<S> UnauthenticatedConn<S>
                 //  or some wild hacks like comparing sha256 hashes of both values(which leaks hashes values but not values itself)
 
                 let client_hash = {
-                    let mut hmac = <Hmac<Sha256>>::new_varkey(TOR_SAFECOOKIE_CONSTANT)
+                    let mut hmac = <Hmac<Sha256>>::new_from_slice(TOR_SAFECOOKIE_CONSTANT)
                         .expect("Any key len for hmac should be valid. If it's not then rehash data. Right?");
                     hmac.input(cookie.as_ref());
                     hmac.input(&client_nonce[..]);
