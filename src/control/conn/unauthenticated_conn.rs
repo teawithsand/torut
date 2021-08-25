@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 
+use hmac::crypto_mac::Output;
 use hmac::{Hmac, Mac};
 use rand::{RngCore, thread_rng};
 use sha2::Sha256;
@@ -296,21 +297,21 @@ impl<S> UnauthenticatedConn<S>
                 //  or some wild hacks like comparing sha256 hashes of both values(which leaks hashes values but not values itself)
 
                 let client_hash = {
+                    use hmac::NewMac;
                     let mut hmac = <Hmac<Sha256>>::new_from_slice(TOR_SAFECOOKIE_CONSTANT)
                         .expect("Any key len for hmac should be valid. If it's not then rehash data. Right?");
-                    hmac.input(cookie.as_ref());
-                    hmac.input(&client_nonce[..]);
-                    hmac.input(&res.server_nonce[..]);
+                    hmac.update(cookie.as_ref());
+                    hmac.update(&client_nonce[..]);
+                    hmac.update(&res.server_nonce[..]);
 
 
-                    let res = hmac.result();
-                    res.code()
+                    let res = hmac.finalize();
+                    res.into_bytes()
                 };
-                let client_hash = client_hash.as_ref();
 
                 let mut buf = Vec::new();
                 buf.extend_from_slice(b"AUTHENTICATE ");
-                buf.extend_from_slice(hex::encode_upper(client_hash.as_ref()).as_bytes());
+                buf.extend_from_slice(hex::encode_upper(client_hash).as_bytes());
                 buf.extend_from_slice(b"\r\n");
                 self.conn.write_data(&buf[..]).await?;
             }

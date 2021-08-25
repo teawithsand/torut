@@ -1,5 +1,5 @@
 use ed25519_dalek::{ExpandedSecretKey, PublicKey, SecretKey, SignatureError};
-use rand::thread_rng;
+use rand::{Rng, thread_rng};
 use crate::onion::OnionAddressV3;
 
 use crate::utils::BASE32_ALPHA;
