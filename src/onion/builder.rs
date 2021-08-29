@@ -7,8 +7,6 @@ use std::fmt;
 use std::fmt::Display;
 use std::net::IpAddr;
 
-#[cfg(feature = "v2")]
-use crate::onion::{TorPublicKeyV2, TorSecretKeyV2};
 #[cfg(feature = "v3")]
 use crate::onion::{TorPublicKeyV3, TorSecretKeyV3};
 use crate::onion::common::TorSecretKey;
@@ -74,8 +72,6 @@ impl OnionServiceBuilder {
 }
 
 pub enum RunningOnionServiceKeyPair {
-    #[cfg(feature = "v2")]
-    V2(TorPublicKeyV2, TorSecretKeyV2),
     #[cfg(feature = "v3")]
     V3(TorPublicKeyV3, TorSecretKeyV3),
 }

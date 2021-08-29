@@ -546,58 +546,6 @@ impl<S, F, H> AuthenticatedConn<S, H>
         Ok(res)
     }
 
-    #[deprecated(
-        since = "0.1.10",
-        note = "V2 onion services are deprecated by tor and soon will stop working; It will be removed in next release"
-    )]
-    #[cfg(any(feature = "v2"))]
-    /// add_onion sends `ADD_ONION` command which spins up new onion service.
-    /// Using given tor secret key and some configuration values.
-    ///
-    /// For onion service v3 take a look at `add_onion_v3`
-    ///
-    /// # Parameters
-    /// `key` - key to use to start onion service
-    /// `detach` - if set to `false` it makes onion service disappear once control connection is closed
-    /// `non_anonymous` - if set to `true` it runs special single hop onion service. It can't be done on default compilation of tor.
-    /// `max_streams_close_circuit` - if set to `true` closes circuit if max streams is reached
-    /// `max_num_streams` - maximum amount of streams which may be attached to RP point. Zero is unlimited.
-    ///   `None` is default and may vary depending on tor version being used.
-    /// `listeners` - set of pairs of ports and addresses to which connections should be redirected to.
-    /// Must contain at least one entry. Otherwise error is returned.
-    ///
-    /// It does not support basic auth yet.
-    /// It does not support tor-side generated keys yet.
-    pub async fn add_onion_v2(
-        &mut self,
-        key: &crate::onion::TorSecretKeyV2,
-        detach: bool,
-        non_anonymous: bool,
-        max_streams_close_circuit: bool,
-        max_num_streams: Option<u16>,
-        listeners: &mut impl Iterator<Item=&(u16, SocketAddr)>,
-    ) -> Result<(), ConnError> {
-        let mut res = Self::setup_onion_service_call(
-            true,
-            &key.as_tor_proto_encoded(),
-            detach,
-            non_anonymous,
-            max_streams_close_circuit,
-            max_num_streams,
-            listeners,
-        )?;
-        res.push_str("\r\n");
-        self.conn.write_data(res.as_bytes()).await?;
-
-        // we do not really care about contents of response
-        // we can derive all the data from tor's objects at the torut level
-        let (code, _) = self.recv_response().await?;
-        if code != 250 {
-            return Err(ConnError::InvalidResponseCode(code));
-        }
-        Ok(())
-    }
-
     #[cfg(any(feature = "v3"))]
     /// add_onion sends `ADD_ONION` command which spins up new onion service
     /// using given tor secret key and some configuration values.
@@ -1095,42 +1043,6 @@ mod test_with_tor {
 
             // delete onion service so it works no more
             ac.del_onion(&key.public().get_onion_address().get_address_without_dot_onion()).await.unwrap();
-        });
-    }
-
-    #[test]
-    fn test_can_create_onion_service_v2() {
-        let _c = run_testing_tor_instance(
-            &[
-                "--DisableNetwork", "1",
-                "--ControlPort", &TOR_TESTING_PORT.to_string(),
-            ]);
-
-        block_on_with_env(async move {
-            let s = TcpStream::connect(&format!("127.0.0.1:{}", TOR_TESTING_PORT)).await.unwrap();
-            let mut utc = UnauthenticatedConn::new(s);
-            let proto_info = utc.load_protocol_info().await.unwrap();
-
-            assert!(proto_info.auth_methods.contains(&TorAuthMethod::Null));
-            utc.authenticate(&TorAuthData::Null).await.unwrap();
-            let mut ac = utc.into_authenticated().await;
-            ac.set_async_event_handler(Some(|_| {
-                async move { Ok(()) }
-            }));
-
-            let key = crate::onion::TorSecretKeyV2::generate();
-
-            ac.add_onion_v2(&key, false, false, false, None, &mut [
-                (15787, SocketAddr::new(IpAddr::from(Ipv4Addr::new(127,0,0,1)), 15787)),
-            ].iter()).await.unwrap();
-
-            // additional actions to check if connection is in corrupted state
-            ac.take_ownership().await.unwrap();
-            ac.drop_ownership().await.unwrap();
-
-            // delete onion service so it works no more
-            // TOOD(teawithsand): implement get_onion_address for TorPublicKeyV2
-            // ac.del_onion(&key.public().get_onion_address().get_address_without_dot_onion()).await.unwrap();
         });
     }
 

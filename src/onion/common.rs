@@ -1,15 +1,15 @@
 use std::fmt::Display;
 
-#[cfg(feature = "v2")]
-use crate::onion::{OnionAddressV2, TorPublicKeyV2, TorSecretKeyV2};
+
 #[cfg(feature = "v3")]
 use crate::onion::{OnionAddressV3, TorPublicKeyV3, TorSecretKeyV3};
 
 #[derive(Debug, Clone, PartialEq, Eq, From, TryInto)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum TorSecretKey {
-    #[cfg(feature = "v2")]
-    V2(TorSecretKeyV2),
+    // leave this type, since some day tor may introduce v4 addresses
+    // for instance quantum secure one
+
     #[cfg(feature = "v3")]
     V3(TorSecretKeyV3),
 }
@@ -17,8 +17,9 @@ pub enum TorSecretKey {
 #[derive(Debug, Clone, PartialEq, Eq, From, TryInto)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum OnionAddress {
-    #[cfg(feature = "v2")]
-    V2(OnionAddressV2),
+    // leave this type, since some day tor may introduce v4 addresses
+    // for instance quantum secure one
+
     #[cfg(feature = "v3")]
     V3(OnionAddressV3),
 }
@@ -26,8 +27,6 @@ pub enum OnionAddress {
 impl Display for OnionAddress {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         match self {
-            #[cfg(feature = "v2")]
-            OnionAddress::V2(a) => a.fmt(f),
             #[cfg(feature = "v3")]
             OnionAddress::V3(a) => a.fmt(f),
         }
@@ -37,8 +36,6 @@ impl Display for OnionAddress {
 impl OnionAddress {
     pub fn get_address_without_dot_onion(&self) -> String {
         match self {
-            #[cfg(feature = "v2")]
-            OnionAddress::V2(a) => a.get_address_without_dot_onion(),
             #[cfg(feature = "v3")]
             OnionAddress::V3(a) => a.get_address_without_dot_onion(),
         }
@@ -48,8 +45,6 @@ impl OnionAddress {
 #[derive(Debug, Clone, PartialEq, Eq, From, TryInto)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum TorPublicKey {
-    #[cfg(feature = "v2")]
-    V2(TorPublicKeyV2),
     #[cfg(feature = "v3")]
     V3(TorPublicKeyV3),
 }
