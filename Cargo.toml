@@ -24,13 +24,13 @@ maintenance = { status = "passively-maintained" }
 serde = { version = "1.0", optional = true }
 serde_derive = { version = "1.0", optional = true }
 
-derive_more = "0.99.16"
+derive_more = "0.99"
 
 sha3 = { version = "0.9", optional = true } # for onion service v3 signature
 sha2 = { version = "0.9", optional = true } # for ed25519-dalek key
-hmac = { version = "0.11.0", optional = true } # for authentication with tor controller
+hmac = { version = "0.11", optional = true } # for authentication with tor controller
 
-ed25519-dalek = { version = "1.0", optional = true }
+ed25519-dalek = { version = "1", optional = true }
 rand = { version = "0.7", optional = true }
 base32 = { version = "0.4", optional = true }
 base64 = { version = "0.13", optional = true }
