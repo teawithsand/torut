@@ -1,7 +1,7 @@
 use ed25519_dalek::{ExpandedSecretKey, PublicKey, SecretKey, SignatureError};
-use rand::{Rng, thread_rng};
-use crate::onion::OnionAddressV3;
+use rand::thread_rng;
 
+use crate::onion::OnionAddressV3;
 use crate::utils::BASE32_ALPHA;
 
 /// Standardises usage of Tor V3 public keys, which is 32 bytes
@@ -70,7 +70,7 @@ impl TorPublicKeyV3 {
     }
 
     /// get_onion_address creates onion address from public key.
-    /// 
+    ///
     /// It can be used in place of `OnionAddressV3::from`.
     pub fn get_onion_address(&self) -> OnionAddressV3 {
         OnionAddressV3::from(self)

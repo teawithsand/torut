@@ -2,7 +2,6 @@ use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 
-use hmac::crypto_mac::Output;
 use hmac::{Hmac, Mac};
 use rand::{RngCore, thread_rng};
 use sha2::Sha256;
