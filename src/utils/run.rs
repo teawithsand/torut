@@ -129,6 +129,6 @@ pub fn run_tor<A, T, P>(path: P, args: A) -> Result<Child, std::io::Error>
     Ok(c)
 }
 
-// TODO(teaiwthsand): async run_tor
+// TODO(teawithsand): async run_tor
 
 // tests for these are in testing.rs

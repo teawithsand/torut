@@ -221,7 +221,7 @@ impl<S, F, H> AuthenticatedConn<S, H>
         self.set_conf_multiple(&mut std::iter::once((option, value))).await
     }
 
-    // TODO(teawithsand): multiple versions of get_conf for specifiic stuff
+    // TODO(teawithsand): multiple versions of get_conf for specific stuff
     /// get_conf sends `GETCONF` command to remote tor instance
     /// which gets one(or more but it's not implemented, use sequence of calls to this function)
     /// configuration value from tor.
@@ -333,7 +333,7 @@ impl<S, F, H> AuthenticatedConn<S, H>
                 for val in values.iter_mut() {
                     let (quote_end, res) = unquote_string(val);
                     // TODO(teawithsand):
-                    // what if there are many unquoted strings?
+                    //  what if there are many unquoted strings?
                     if quote_end.is_some() { // if unquotting occurred
                         if let Ok(unquoted_text) = res{ // and succeed
                             *val = unquoted_text.into_owned();
