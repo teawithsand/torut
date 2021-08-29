@@ -41,11 +41,11 @@ impl From<&TorPublicKeyV3> for OnionAddressV3 {
         });
 
         let mut h = sha3::Sha3_256::new();
-        h.input(b".onion checksum");
-        h.input(&tpk.0);
-        h.input(b"\x03");
+        h.update(b".onion checksum");
+        h.update(&tpk.0);
+        h.update(b"\x03");
 
-        let res_vec = h.result().to_vec();
+        let res_vec = h.finalize().to_vec();
         buf[32] = res_vec[0];
         buf[33] = res_vec[1];
         Self(buf)
@@ -155,11 +155,11 @@ impl FromStr for OnionAddressV3 {
         //  where H is sha3_256
 
         let mut h = sha3::Sha3_256::new();
-        h.input(b".onion checksum");
-        h.input(&res[..32]);
-        h.input(b"\x03");
+        h.update(b".onion checksum");
+        h.update(&res[..32]);
+        h.update(b"\x03");
 
-        let res_vec = h.result().to_vec();
+        let res_vec = h.finalize().to_vec();
         if res_vec[0] != res[32] || res_vec[1] != res[33] {
             return Err(OnionAddressParseError::InvalidChecksum);
         }
