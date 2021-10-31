@@ -326,7 +326,7 @@ impl<S, F, H> AuthenticatedConn<S, H>
     }
 
     /// get_info_multiple_unquote works just like get_info_multiple but unquotes results
-    /// If uniqoting fails original value is left.
+    /// If unquoting fails original value is left.
     pub async fn get_info_multiple_unquote(&mut self, options: &mut impl Iterator<Item=&str>) -> Result<HashMap<String, Vec<String>>, ConnError> {
         self.get_info_multiple(options).await.map(|mut res_map| {
             for (_, values) in res_map.iter_mut() {

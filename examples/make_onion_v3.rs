@@ -9,7 +9,7 @@ async fn main() {
     // testing port is 47835
     // it must be free
 
-    let child = run_tor("../tor_runnable", &mut [
+    let child = run_tor(std::env::var("TORUT_TOR_BINARY").unwrap(), &mut [
         "--DisableNetwork", "1",
         "--ControlPort", "47835",
         // "--CookieAuthentication", "1",

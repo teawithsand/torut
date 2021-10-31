@@ -2,13 +2,16 @@ use torut::utils::{run_tor, AutoKillChild};
 use torut::control::{UnauthenticatedConn, TorAuthMethod, TorAuthData};
 use tokio::net::TcpStream;
 
+use std::thread::sleep;
+use std::time::Duration;
+
 #[tokio::main]
 async fn main() {
     // testing port is 47835
     // it must be free
 
-    let child = run_tor(std::env::var("TORUT_TOR_BINARY").unwrap(), &mut [
-        "--DisableNetwork", "1",
+    let child = run_tor( std::env::var("TORUT_TOR_BINARY").unwrap(), &mut [
+        // "--DisableNetwork", "1",
         "--ControlPort", "47835",
         // "--CookieAuthentication", "1",
     ].iter()).expect("Starting tor filed");
@@ -27,9 +30,10 @@ async fn main() {
 
     ac.take_ownership().await.unwrap();
 
-    let socksport = ac.get_info_unquote("net/listeners/socks").await.unwrap();
-    println!("Tor is running now. It's socks port is listening(or not) on: {:?} but it's not connected to the network because DisableNetwork is set", socksport);
-
-    let controlport = ac.get_info_unquote("net/listeners/control").await.unwrap();
-    println!("Tor is running now. It's control port listening on: {:?}", controlport);
+    loop {
+        println!("getting shared random value...");
+        let shared_random = ac.get_info("sr/previous").await.unwrap();
+        println!("sr: {}", shared_random);
+        sleep(Duration::new(1, 0));
+    }
 }
