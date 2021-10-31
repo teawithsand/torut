@@ -12,9 +12,9 @@ use crate::utils::BASE32_ALPHA;
 
 /// 32 public key bytes + 2 bytes of checksum = 34
 /// (in onion address v3 there is one more byte - version eq to 3)
-/// Checksum is embbeded in order not to recompute it.
+/// Checksum is embedded in order not to recompute it.
 ///
-/// This variable denotates byte length of OnionAddressV3.
+/// This variable denotes byte length of OnionAddressV3.
 pub const TORV3_ONION_ADDRESS_LENGTH_BYTES: usize = 34;
 
 /// OnionAddressV3 contains public part of Tor's onion service address version 3.,
@@ -114,6 +114,7 @@ impl Error for OnionAddressParseError {}
 impl FromStr for OnionAddressV3 {
     type Err = OnionAddressParseError;
 
+    //noinspection SpellCheckingInspection
     /// from_str parses OnionAddressV3 from string.
     ///
     /// Please note that it accepts address *without* .onion only.
@@ -187,6 +188,7 @@ mod test {
         );
     }
 
+    //noinspection SpellCheckingInspection
     #[test]
     fn test_can_convert_to_public_key_and_vice_versa() {
         let oa = OnionAddressV3::from_str("p53lf57qovyuvwsc6xnrppyply3vtqm7l6pcobkmyqsiofyeznfu5uqd").unwrap();
