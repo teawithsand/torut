@@ -5,8 +5,6 @@ use std::fmt::{Display, Formatter};
 use std::fmt;
 use std::str::FromStr;
 
-#[cfg(feature = "serialize")]
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use sha3::Digest;
 
 use crate::onion::v3::TorPublicKeyV3;
@@ -172,25 +170,6 @@ impl FromStr for OnionAddressV3 {
         buf[33] = res_vec[1];
 
         Ok(Self(buf))
-    }
-}
-
-#[cfg(feature = "serialize")]
-impl Serialize for OnionAddressV3 {
-    fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error> where
-        S: Serializer {
-        let res = self.get_address_without_dot_onion();
-        serializer.serialize_str(&res)
-    }
-}
-
-#[cfg(feature = "serialize")]
-impl<'de> Deserialize<'de> for OnionAddressV3 {
-    //noinspection SpellCheckingInspection
-    fn deserialize<D>(deserializer: D) -> Result<Self, <D as Deserializer<'de>>::Error> where
-        D: Deserializer<'de> {
-        let raw_onion_addr = <&str>::deserialize(deserializer)?;
-        Ok(Self::from_str(raw_onion_addr).map_err(de::Error::custom)?)
     }
 }
 
